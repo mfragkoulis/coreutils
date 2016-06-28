@@ -53,6 +53,10 @@
 #include "xnanosleep.h"
 #include "xstrtol.h"
 
+/*  sgsh negotiate API (fix -I) */
+#include <assert.h>
+#include "sgsh-negotiate.h"
+
 #ifndef RLIMIT_DATA
 struct rlimit { size_t rlim_cur; };
 # define getrlimit(Resource, Rlp) (-1)
@@ -1551,7 +1555,6 @@ sort_buffer_size (FILE *const *fps, size_t nfps,
         return size_bound;
       size += worst_case;
     }
-
   return size;
 }
 
@@ -2424,15 +2427,16 @@ key_warnings (struct keyfield const *gkey, bool gkey_only)
         }
 
       /* Warn about field specs that will never match.  */
-      bool zero_width = key->sword != SIZE_MAX && key->eword < key->sword;
-      if (zero_width)
+      if (key->sword != SIZE_MAX && key->eword < key->sword)
         error (0, 0, _("key %lu has zero width and will be ignored"), keynum);
 
       /* Warn about significant leading blanks.  */
       bool implicit_skip = key_numeric (key) || key->month;
+      bool maybe_space_aligned = !hard_LC_COLLATE && default_key_compare (key)
+                                 && !(key->schar || key->echar);
       bool line_offset = key->eword == 0 && key->echar != 0; /* -k1.x,1.y  */
-      if (!zero_width && !gkey_only && tab == TAB_DEFAULT && !line_offset
-          && ((!key->skipsblanks && !implicit_skip)
+      if (!gkey_only && tab == TAB_DEFAULT && !line_offset
+          && ((!key->skipsblanks && !(implicit_skip || maybe_space_aligned))
               || (!key->skipsblanks && key->schar)
               || (!key->skipeblanks && key->echar)))
         error (0, 0, _("leading blanks are significant in key %lu; "
@@ -3875,8 +3879,9 @@ merge (struct sortfile *files, size_t ntemps, size_t nfiles,
 
 /* Sort NFILES FILES onto OUTPUT_FILE.  Use at most NTHREADS threads.  */
 
+/* sgsh: char ***files to be able to adapt file names */
 static void
-sort (char *const *files, size_t nfiles, char const *output_file,
+sort (char ***files, size_t nfiles, char const *output_file,
       size_t nthreads)
 {
   struct buffer buf;
@@ -3884,13 +3889,68 @@ sort (char *const *files, size_t nfiles, char const *output_file,
   size_t ntemps = 0;
   bool output_file_created = false;
 
+  /* sgsh */
+  int j = 0;
+  int ninputfds = -1;
+  int noutputfds = -1;
+  int *inputfds;
+  int *outputfds;
+  char sgshin[10];
+  char sgshout[11];
+  int status = -1;
+  int count_stdin_files = 0;
+
   buf.alloc = 0;
 
-  while (nfiles)
+  /* sgsh */
+  if (!isatty(fileno(stdin))) strcpy(sgshin, "SGSH_IN=1");
+  else strcpy(sgshin, "SGSH_IN=0");
+  putenv(sgshin);
+  if (!isatty(fileno(stdout))) strcpy(sgshout, "SGSH_OUT=1");
+  else strcpy(sgshout, "SGSH_OUT=0");
+  putenv(sgshout);
+  if ((status = sgsh_negotiate("sort", -1, 1, &inputfds, &ninputfds, &outputfds,
+                                                          &noutputfds))) {
+    printf("sgsh negotiation failed with status code %d.\n", status);
+    exit(1);
+  }
+
+  /* Count stdin input file directives */
+  for (j = 0; j < nfiles; j++)
     {
+    const char *file = (*files)[j];
+    //printf("sort: input file: %s\n", file);
+    if (STREQ(file, "-")) count_stdin_files++;
+    }
+  
+  /**
+   * Realloc space in file name array to accommodate the implicit
+   * input streams coming from sgsh.
+   */
+  if (ninputfds > count_stdin_files)
+    {
+    nfiles += ninputfds - 1;
+    *files = xnrealloc (*files, nfiles, sizeof **files);
+    for (j = nfiles - ninputfds +1; j < nfiles; j++)
+      (*files)[j] = (*files)[0];
+    }
+    j = 0;
+
+  while (nfiles)
+    { 
       char const *temp_output;
-      char const *file = *files;
-      FILE *fp = xfopen (file, "r");
+      /* sgsh */
+      int m = 0;
+      char const *file = (*files)[m];
+      FILE *fp;
+      /* sgsh */
+      if (STREQ(file, "-"))
+        {
+        fp = fdopen(inputfds[j++], "r");
+        have_read_stdin = true;
+        }
+      else
+        fp = xfopen (file, "r");
       FILE *tfp;
 
       size_t bytes_per_line;
@@ -3911,9 +3971,9 @@ sort (char *const *files, size_t nfiles, char const *output_file,
 
       if (! buf.alloc)
         initbuf (&buf, bytes_per_line,
-                 sort_buffer_size (&fp, 1, files, nfiles, bytes_per_line));
+                 sort_buffer_size (&fp, 1, *files, nfiles, bytes_per_line));
       buf.eof = false;
-      files++;
+      m++;
       nfiles--;
 
       while (fillbuf (&buf, fp, file))
@@ -3936,7 +3996,9 @@ sort (char *const *files, size_t nfiles, char const *output_file,
           if (buf.eof && !nfiles && !ntemps && !buf.left)
             {
               xfclose (fp, file);
-              tfp = xfopen (output_file, "w");
+              /* sgsh */
+              if (noutputfds > 0) tfp = fdopen(outputfds[0], "w");
+              else tfp = xfopen (output_file, "w");
               temp_output = output_file;
               output_file_created = true;
             }
@@ -4562,6 +4624,7 @@ main (int argc, char **argv)
         }
     }
 
+  /* sgsh here too? */
   if (files_from)
     {
       FILE *stream;
@@ -4748,7 +4811,7 @@ main (int argc, char **argv)
       size_t nthreads_max = SIZE_MAX / (2 * sizeof (struct merge_node));
       nthreads = MIN (nthreads, nthreads_max);
 
-      sort (files, nfiles, outfile, nthreads);
+      sort (&files, nfiles, outfile, nthreads);
     }
 
 #ifdef lint

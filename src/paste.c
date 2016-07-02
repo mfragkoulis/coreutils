@@ -208,7 +208,7 @@ paste_parallel (size_t nfiles, char **fnamptr)
 	int status = -1;
   int j = 0;
   int ninputfds = -1;
-  int noutputfds = -1;
+  int noutputfds = -1, noutputfds_expected = -1;
   int *inputfds;
   int *outputfds;
   char sgshin[10];
@@ -221,23 +221,30 @@ paste_parallel (size_t nfiles, char **fnamptr)
   else 
     strcpy(sgshin, "SGSH_IN=0");
   putenv(sgshin);
-  if (!isatty(fileno(stdout)))
+  if (!isatty(fileno(stdout))) {
     strcpy(sgshout, "SGSH_OUT=1");
-  else
+    noutputfds_expected = 1;
+  } else {
     strcpy(sgshout, "SGSH_OUT=0");
+    noutputfds_expected = 0;
+  }
   putenv(sgshout);
 
-  if ((status = sgsh_negotiate("paste", -1, 1, &inputfds, &ninputfds, &outputfds,
-                                                          &noutputfds))) {
+  if ((status = sgsh_negotiate("paste", -1, noutputfds_expected, &inputfds,
+                                    &ninputfds, &outputfds, &noutputfds))) {
     printf("sgsh negotiation failed with status code %d.\n", status);
     exit(1);
-	}
-  outstream = fdopen(outputfds[0], "w");
-	for (j = 0; j < ninputfds; j++)
-    fprintf(stderr, "paste: inputfd: %d", inputfds[j]);
-	for (j = 0; j < noutputfds; j++)
-    fprintf(stderr, "paste: outputfd: %d", outputfds[j]);
-	exit(1);
+  }
+
+  assert(noutputfds == noutputfds_expected);
+  if (noutputfds == 1)
+    outstream = fdopen(outputfds[0], "w");
+  else
+    outstream = stdout;
+  for (j = 0; j < ninputfds; j++)
+    fprintf(stderr, "paste: inputfd: %d\n", inputfds[j]);
+  for (j = 0; j < noutputfds; j++)
+    fprintf(stderr, "paste: outputfd: %d\n", outputfds[j]);
 
   for (files_open = 0; files_open < nfiles; ++files_open)
     {

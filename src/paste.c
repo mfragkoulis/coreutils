@@ -217,26 +217,26 @@ paste_parallel (size_t nfiles, char **fnamptr)
 
   /* sgsh */
   if (!isatty(fileno(stdin)))
-		strcpy(sgshin, "SGSH_IN=1");
+    strcpy(sgshin, "SGSH_IN=1");
   else 
-		strcpy(sgshin, "SGSH_IN=0");
+    strcpy(sgshin, "SGSH_IN=0");
   putenv(sgshin);
   if (!isatty(fileno(stdout)))
-		strcpy(sgshout, "SGSH_OUT=1");
+    strcpy(sgshout, "SGSH_OUT=1");
   else
-		strcpy(sgshout, "SGSH_OUT=0");
+    strcpy(sgshout, "SGSH_OUT=0");
   putenv(sgshout);
 
   if ((status = sgsh_negotiate("paste", -1, 1, &inputfds, &ninputfds, &outputfds,
                                                           &noutputfds))) {
-		printf("sgsh negotiation failed with status code %d.\n", status);
-		exit(1);
+    printf("sgsh negotiation failed with status code %d.\n", status);
+    exit(1);
 	}
   outstream = fdopen(outputfds[0], "w");
 	for (j = 0; j < ninputfds; j++)
-		fprintf(stderr, "paste: inputfd: %d", inputfds[j]);
+    fprintf(stderr, "paste: inputfd: %d", inputfds[j]);
 	for (j = 0; j < noutputfds; j++)
-		fprintf(stderr, "paste: outputfd: %d", outputfds[j]);
+    fprintf(stderr, "paste: outputfd: %d", outputfds[j]);
 	exit(1);
 
   for (files_open = 0; files_open < nfiles; ++files_open)

@@ -46,6 +46,9 @@ static FILE* outfile;
 
 #define join system_join
 
+/* sgsh */
+#define putchar_fd(c) fputs(&c, outfile);
+
 #define SWAPLINES(a, b) do { \
   struct line *tmp = a; \
   a = b; \
@@ -580,12 +583,12 @@ prfields (struct line const *line, size_t join_field, size_t autocount)
 
   for (i = 0; i < join_field && i < nfields; ++i)
     {
-      putchar (output_separator);
+      putchar_fd (output_separator);
       prfield (i, line);
     }
   for (i = join_field + 1; i < nfields; ++i)
     {
-      putchar (output_separator);
+      putchar_fd (output_separator);
       prfield (i, line);
     }
 }
@@ -630,9 +633,9 @@ prjoin (struct line const *line1, struct line const *line2)
           o = o->next;
           if (o == NULL)
             break;
-          putchar (output_separator);
+          putchar_fd (output_separator);
         }
-      putchar (eolchar);
+      putchar_fd (eolchar);
     }
   else
     {
@@ -647,6 +650,7 @@ prjoin (struct line const *line1, struct line const *line2)
           field = join_field_1;
         }
 
+
       /* Output the join field.  */
       prfield (field, line);
 
@@ -654,7 +658,7 @@ prjoin (struct line const *line1, struct line const *line2)
       prfields (line1, join_field_1, autocount_1);
       prfields (line2, join_field_2, autocount_2);
 
-      putchar (eolchar);
+      putchar_fd (eolchar);
     }
 }
 
@@ -1021,9 +1025,8 @@ main (int argc, char **argv)
   int i;
 
   /* sgsh */
-    /* sgsh */
-  int ninputfds = -1;
-  int noutputfds = -1;
+  int ninputfds = -1, ninputfds_expected = 0;
+  int noutputfds = -1, noutputfds_expected = -1;
   int *inputfds;
   int *outputfds;
   char sgshin[10];
@@ -1167,12 +1170,17 @@ main (int argc, char **argv)
       prev_optc_status = optc_status;
     }
 
+
   /* Process any operands after "--".  */
   prev_optc_status = MUST_BE_OPERAND;
   while (optind < argc)
     add_file_name (argv[optind++], g_names, operand_status, joption_count,
                    &nfiles, &prev_optc_status, &optc_status);
-
+/*
+  fprintf(stderr, "g_names[0]: %s\n", g_names[0]);
+  fprintf(stderr, "g_names[1]: %s\n", g_names[1]);
+  fprintf(stderr, "nfiles: %d\n", nfiles);
+*/
   if (nfiles != 2)
     {
       if (nfiles == 0)
@@ -1197,47 +1205,38 @@ main (int argc, char **argv)
     join_field_2 = 0;
 
   /* sgsh */
-  strcpy(sgshin, "SGSH_IN=1");
+  if (!isatty(fileno(stdin)))
+    strcpy(sgshin, "SGSH_IN=1");
+  else
+    strcpy(sgshin, "SGSH_IN=0");
   putenv(sgshin);
-  strcpy(sgshout, "SGSH_OUT=1");
+  if (!isatty(fileno(stdout))) {
+    strcpy(sgshout, "SGSH_OUT=1");
+    noutputfds_expected = 1;
+  } else {
+    strcpy(sgshout, "SGSH_OUT=0");
+    noutputfds_expected = 0;
+  }
   putenv(sgshout);
-  sgsh_negotiate("join", 2, 1, &inputfds, &ninputfds, &outputfds,
-                                                          &noutputfds);
+  if (STREQ (g_names[0], ""))
+	  ninputfds_expected++;
+  if (STREQ (g_names[1], ""))
+	  ninputfds_expected++;
+  sgsh_negotiate("join", ninputfds_expected, noutputfds_expected, &inputfds,
+                                   &ninputfds, &outputfds, &noutputfds);
 
   /* sgsh */
-  assert(noutputfds <= 1);
+  assert(ninputfds == ninputfds_expected);
+  assert(noutputfds == noutputfds_expected);
+
   outfile = noutputfds == 1 ? fdopen(outputfds[0], "w") : stdout;
 
-  assert(ninputfds <= 2);
-  if (ninputfds == 0)
-    {
-    fp1 = STREQ (g_names[0], "-") ? stdin : fopen (g_names[0], "r");
-    if (!fp1)
+  fp1 = STREQ (g_names[0], "") ? fdopen(inputfds[0], "r") : fopen (g_names[0], "r");
+  if (!fp1)
       error (EXIT_FAILURE, errno, "%s", quotef (g_names[0]));
-    fp2 = STREQ (g_names[1], "-") ? stdin : fopen (g_names[1], "r");
-    if (!fp2)
+  fp2 = STREQ (g_names[1], "") ? fdopen(inputfds[1], "r") : fopen (g_names[1], "r");
+  if (!fp2)
       error (EXIT_FAILURE, errno, "%s", quotef (g_names[1]));
-    if (fp1 == fp2)
-      error (EXIT_FAILURE, errno, _("both files cannot be standard input"));
-    }
-  else if (ninputfds == 1)
-    {
-      if (STREQ(g_names[0], "-"))
-        {
-        fp1 = fdopen(inputfds[0], "r");
-        fp2 = fopen(g_names[1], "r");
-        }
-      else
-        {
-        fp1 = fopen(g_names[0], "r");
-        fp2 = fdopen(inputfds[0], "r");
-        }
-    }
-  else
-    {
-    fp1 = fdopen(inputfds[0], "r");
-    fp2 = fdopen(inputfds[1], "r");
-    }
 
   join (fp1, fp2);
 

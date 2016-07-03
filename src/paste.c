@@ -46,6 +46,7 @@
 
 /*  sgsh negotiate API (fix -I) */
 #include <assert.h>
+#include <sys/stat.h>	/* struct stat */
 #include "sgsh-negotiate.h"
 
 /* The official name of this program (e.g., no 'g' prefix).  */
@@ -57,6 +58,9 @@
 
 /* Indicates that no delimiter should be added in the current position. */
 #define EMPTY_DELIM '\0'
+
+/* sgsh */
+static  FILE *outstream;
 
 /* If nonzero, we have read standard input at some point. */
 static bool have_read_stdin;
@@ -172,7 +176,8 @@ write_error (void)
 static inline void
 xputchar (char c)
 {
-  if (putchar (c) < 0)
+  /* sgsh */
+  if (fputc (c, outstream) < 0)
     write_error ();
 }
 
@@ -205,7 +210,7 @@ paste_parallel (size_t nfiles, char **fnamptr)
      each file and its current offset, then opening/reading/closing.  */
 
   /* sgsh */
-	int status = -1;
+  int status = -1;
   int j = 0;
   int ninputfds = -1;
   int noutputfds = -1, noutputfds_expected = -1;
@@ -213,7 +218,10 @@ paste_parallel (size_t nfiles, char **fnamptr)
   int *outputfds;
   char sgshin[10];
   char sgshout[11];
-  FILE *outstream;
+  struct stat stats;
+  int re = fstat(fileno(stdout), &stats);
+  if (re < 0)
+    error(EXIT_FAILURE, errno, "fstat failed\n");
 
   /* sgsh */
   if (!isatty(fileno(stdin)))
@@ -221,7 +229,8 @@ paste_parallel (size_t nfiles, char **fnamptr)
   else 
     strcpy(sgshin, "SGSH_IN=0");
   putenv(sgshin);
-  if (!isatty(fileno(stdout))) {
+  if (!isatty(fileno(stdout)) &&
+      (S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode))) {
     strcpy(sgshout, "SGSH_OUT=1");
     noutputfds_expected = 1;
   } else {
@@ -241,11 +250,13 @@ paste_parallel (size_t nfiles, char **fnamptr)
     outstream = fdopen(outputfds[0], "w");
   else
     outstream = stdout;
-  /*for (j = 0; j < ninputfds; j++)
+/*
+  for (j = 0; j < ninputfds; j++)
     fprintf(stderr, "paste: inputfd: %d\n", inputfds[j]);
   for (j = 0; j < noutputfds; j++)
     fprintf(stderr, "paste: outputfd: %d\n", outputfds[j]);
 */
+
   for (files_open = 0; files_open < nfiles; ++files_open)
     {
       if (STREQ (fnamptr[files_open], "-"))
@@ -268,7 +279,16 @@ paste_parallel (size_t nfiles, char **fnamptr)
           fadvise (fileptr[files_open], FADVISE_SEQUENTIAL);
         }
     }
-
+/* sgsh scaffolding
+ for (j = 0; j < ninputfds; j++) {
+	  char buf[100];
+	  int rsize = read(inputfds[j], buf, 100);
+	  if (rsize == -1)
+		  error(EXIT_FAILURE, errno, "Read failed.\n");
+	  fprintf(stderr, "%s", buf);
+  }
+  exit(1);
+*/
   if (opened_stdin && have_read_stdin)
     error (EXIT_FAILURE, 0, _("standard input is closed"));
 

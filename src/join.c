@@ -36,8 +36,8 @@
 
 /*  sgsh negotiate API (fix -I) */
 #include <assert.h>
+#include <sys/stat.h>	/* struct stat */
 #include "sgsh-negotiate.h"
-static FILE* outfile;
 
 /* The official name of this program (e.g., no 'g' prefix).  */
 #define PROGRAM_NAME "join"
@@ -47,7 +47,7 @@ static FILE* outfile;
 #define join system_join
 
 /* sgsh */
-#define putchar_fd(c) fputs(&c, outfile);
+#define putchar_fd(c) fputc(c, outfile);
 
 #define SWAPLINES(a, b) do { \
   struct line *tmp = a; \
@@ -93,6 +93,9 @@ struct seq
     size_t alloc;			/* Elements allocated in 'lines'.  */
     struct line **lines;
   };
+
+/* sgsh */
+static FILE* outfile;
 
 /* The previous line read from each file.  */
 static struct line *prevline[2] = {NULL, NULL};
@@ -1031,7 +1034,10 @@ main (int argc, char **argv)
   int *outputfds;
   char sgshin[10];
   char sgshout[11];
-
+  struct stat stats;
+  int re = fstat(fileno(stdout), &stats);
+  if (re < 0)
+    error(EXIT_FAILURE, errno, "fstat failed\n");
 
   initialize_main (&argc, &argv);
   set_program_name (argv[0]);
@@ -1176,7 +1182,7 @@ main (int argc, char **argv)
   while (optind < argc)
     add_file_name (argv[optind++], g_names, operand_status, joption_count,
                    &nfiles, &prev_optc_status, &optc_status);
-/*
+/* sgsh scaffolding
   fprintf(stderr, "g_names[0]: %s\n", g_names[0]);
   fprintf(stderr, "g_names[1]: %s\n", g_names[1]);
   fprintf(stderr, "nfiles: %d\n", nfiles);
@@ -1210,7 +1216,8 @@ main (int argc, char **argv)
   else
     strcpy(sgshin, "SGSH_IN=0");
   putenv(sgshin);
-  if (!isatty(fileno(stdout))) {
+  if (!isatty(fileno(stdout)) &&
+      (S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode))) {
     strcpy(sgshout, "SGSH_OUT=1");
     noutputfds_expected = 1;
   } else {
@@ -1218,9 +1225,9 @@ main (int argc, char **argv)
     noutputfds_expected = 0;
   }
   putenv(sgshout);
-  if (STREQ (g_names[0], ""))
+  if (STREQ (g_names[0], "-"))
 	  ninputfds_expected++;
-  if (STREQ (g_names[1], ""))
+  if (STREQ (g_names[1], "-"))
 	  ninputfds_expected++;
   sgsh_negotiate("join", ninputfds_expected, noutputfds_expected, &inputfds,
                                    &ninputfds, &outputfds, &noutputfds);
@@ -1231,10 +1238,10 @@ main (int argc, char **argv)
 
   outfile = noutputfds == 1 ? fdopen(outputfds[0], "w") : stdout;
 
-  fp1 = STREQ (g_names[0], "") ? fdopen(inputfds[0], "r") : fopen (g_names[0], "r");
+  fp1 = STREQ (g_names[0], "-") ? fdopen(inputfds[0], "r") : fopen (g_names[0], "r");
   if (!fp1)
       error (EXIT_FAILURE, errno, "%s", quotef (g_names[0]));
-  fp2 = STREQ (g_names[1], "") ? fdopen(inputfds[1], "r") : fopen (g_names[1], "r");
+  fp2 = STREQ (g_names[1], "-") ? fdopen(inputfds[1], "r") : fopen (g_names[1], "r");
   if (!fp2)
       error (EXIT_FAILURE, errno, "%s", quotef (g_names[1]));
 

@@ -32,6 +32,7 @@
 
 /*  sgsh negotiate API (fix -I) */
 #include <assert.h>
+#include <sys/stat.h>	/* struct stat */
 #include "sgsh-negotiate.h"
 
 /* The official name of this program (e.g., no 'g' prefix).  */
@@ -286,6 +287,10 @@ compare_files (char **infiles)
   char sgshin[10];
   char sgshout[11];
   int status = -1;
+  struct stat stats;
+  int re = fstat(fileno(stdout), &stats);
+  if (re < 0)
+    error(EXIT_FAILURE, errno, "fstat failed\n");
 
   /* sgsh */
   strcpy(sgshin, "SGSH_IN=0");
@@ -300,7 +305,8 @@ compare_files (char **infiles)
     ninputfds_expected++;
     }
   putenv(sgshin);
-  if (!isatty(fileno(stdout)))
+  if (!isatty(fileno(stdout)) &&
+      (S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode)))
     {
     strcpy(sgshout, "SGSH_OUT=1");
     }

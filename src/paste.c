@@ -241,11 +241,11 @@ paste_parallel (size_t nfiles, char **fnamptr)
     outstream = fdopen(outputfds[0], "w");
   else
     outstream = stdout;
-  for (j = 0; j < ninputfds; j++)
+  /*for (j = 0; j < ninputfds; j++)
     fprintf(stderr, "paste: inputfd: %d\n", inputfds[j]);
   for (j = 0; j < noutputfds; j++)
     fprintf(stderr, "paste: outputfd: %d\n", outputfds[j]);
-
+*/
   for (files_open = 0; files_open < nfiles; ++files_open)
     {
       if (STREQ (fnamptr[files_open], "-"))

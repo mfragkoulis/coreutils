@@ -45,6 +45,9 @@
 #undef min
 #define min(x, y) ((x) < (y) ? (x) : (y))
 
+/* sgsh */
+static int noutputfds_expected;
+
 /* True if the LC_COLLATE locale is hard.  */
 static bool hard_LC_COLLATE;
 
@@ -276,7 +279,7 @@ compare_files (char **infiles)
 
   int i, j;
   /* sgsh */
-  int ninputfds = -1;
+  int ninputfds = -1, ninputfds_expected = 0;
   int noutputfds = -1;
   int *inputfds;
   int *outputfds;
@@ -285,51 +288,47 @@ compare_files (char **infiles)
   int status = -1;
 
   /* sgsh */
-  if (STREQ(infiles[0], "-") || STREQ(infiles[0], "-"))
+  strcpy(sgshin, "SGSH_IN=0");
+  if (STREQ(infiles[0], "-"))
+    {
     strcpy(sgshin, "SGSH_IN=1");
-  else
-    strcpy(sgshin, "SGSH_IN=0");
+    ninputfds_expected++;
+    }
+  if (STREQ(infiles[1], "-"))
+    {
+    strcpy(sgshin, "SGSH_IN=1");
+    ninputfds_expected++;
+    }
   putenv(sgshin);
-  if (!isatty(fileno(stdout))) strcpy(sgshout, "SGSH_OUT=1");
-  else strcpy(sgshout, "SGSH_OUT=0");
+  if (!isatty(fileno(stdout)))
+    {
+    strcpy(sgshout, "SGSH_OUT=1");
+    }
+  else
+    { 
+    strcpy(sgshout, "SGSH_OUT=0");
+    noutputfds_expected = 0;
+    }
   putenv(sgshout);
-  if ((status = sgsh_negotiate("comm", 2, 3, &inputfds, &ninputfds, &outputfds, 
-                                                          &noutputfds))) {
+
+  if ((status = sgsh_negotiate("comm", ninputfds_expected, noutputfds_expected,
+      &inputfds, &ninputfds, &outputfds, &noutputfds))) {
     printf("sgsh negotiation failed with status code %d.\n", status);
     exit(1);
   }
 
   /* sgsh */
-  assert(ninputfds <= 2);
-  if (ninputfds == 0)
-    {
-    istreams[0] = STREQ (infiles[0], "-") ? stdin : fopen (infiles[0], "r");
-    if (!istreams[0])
-      error (EXIT_FAILURE, errno, "%s", quotef (infiles[0]));
-    istreams[1] = STREQ (infiles[1], "-") ? stdin : fopen (infiles[1], "r");
-    if (!istreams[1])
-      error (EXIT_FAILURE, errno, "%s", quotef (infiles[1]));
-    }
-  else if (ninputfds == 1)
-    {
-      if (STREQ(infiles[0], "-"))
-        {
-        istreams[0] = fdopen(inputfds[0], "r");
-        istreams[1] = fopen(infiles[1], "r");
-        }
-      else
-        {
-        istreams[0] = fopen(infiles[0], "r");
-        istreams[1] = fdopen(inputfds[0], "r");
-        }
-    }
-  else
-    {
-    istreams[0] = fdopen(inputfds[0], "r");
-    istreams[1] = fdopen(inputfds[1], "r");
-    }
+  assert(ninputfds == ninputfds_expected);
+  assert(noutputfds == noutputfds_expected);
 
-  assert(noutputfds <= 3);
+  istreams[0] = STREQ (infiles[0], "-") ? fdopen(inputfds[0], "r") : fopen (infiles[0], "r");
+  if (!istreams[0])
+    error (EXIT_FAILURE, errno, "%s", quotef (infiles[0]));
+
+  istreams[1] = STREQ (infiles[1], "-") ? fdopen(inputfds[1], "r") : fopen (infiles[1], "r");
+  if (!istreams[1])
+    error (EXIT_FAILURE, errno, "%s", quotef (infiles[1]));
+
   for (i = 0; i < noutputfds; i++)
     ostreams[i] = fdopen(outputfds[i], "w");
   
@@ -450,6 +449,8 @@ main (int argc, char **argv)
   only_file_1 = true;
   only_file_2 = true;
   both = true;
+  /* sgsh */
+  noutputfds_expected = 3;
 
   seen_unpairable = false;
   issued_disorder_warning[0] = issued_disorder_warning[1] = false;
@@ -460,14 +461,17 @@ main (int argc, char **argv)
       {
       case '1':
         only_file_1 = false;
+	noutputfds_expected--;
         break;
 
       case '2':
         only_file_2 = false;
+	noutputfds_expected--;
         break;
 
       case '3':
         both = false;
+	noutputfds_expected--;
         break;
 
       case 'z':

@@ -3892,7 +3892,7 @@ sort (char ***files, size_t nfiles, char const *output_file,
 
   /* sgsh */
   int j = 0;
-  int ninputfds = -1;
+  int ninputfds = -1, ninputfds_expected = -1;
   int noutputfds = -1, noutputfds_expected = 0;
   int *inputfds;
   int *outputfds;
@@ -3907,7 +3907,10 @@ sort (char ***files, size_t nfiles, char const *output_file,
   if (!isatty(fileno(stdin)))
     strcpy(sgshin, "SGSH_IN=1");
   else
+    {
     strcpy(sgshin, "SGSH_IN=0");
+    ninputfds_expected = 0;
+    }
   putenv(sgshin);
   struct stat stats;
   int re = fstat(fileno(stdout), &stats);
@@ -3922,11 +3925,18 @@ sort (char ***files, size_t nfiles, char const *output_file,
   else
     strcpy(sgshout, "SGSH_OUT=0");
   putenv(sgshout);
-  if ((status = sgsh_negotiate("sort", -1, noutputfds_expected, &inputfds,
-				  &ninputfds, &outputfds, &noutputfds))) {
+  if ((status = sgsh_negotiate("sort", ninputfds_expected, noutputfds_expected,
+			&inputfds, &ninputfds, &outputfds, &noutputfds)))
+    {
     printf("sgsh negotiation failed with status code %d.\n", status);
     exit(1);
-  }
+    }
+
+  /* An assertion on the expected input channels does not make sense
+   * when paste is active on the input side; we don't know how many there
+   * will be beforehand.
+   */
+  assert(noutputfds = noutputfds_expected);
 
   /* Count stdin input file directives */
   for (j = 0; j < nfiles; j++)

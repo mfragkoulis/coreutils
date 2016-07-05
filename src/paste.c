@@ -212,7 +212,7 @@ paste_parallel (size_t nfiles, char **fnamptr)
   /* sgsh */
   int status = -1;
   int j = 0;
-  int ninputfds = -1;
+  int ninputfds = -1, ninputfds_expected = -1;
   int noutputfds = -1, noutputfds_expected = -1;
   int *inputfds;
   int *outputfds;
@@ -226,25 +226,36 @@ paste_parallel (size_t nfiles, char **fnamptr)
   /* sgsh */
   if (!isatty(fileno(stdin)))
     strcpy(sgshin, "SGSH_IN=1");
-  else 
+  else
+    {
     strcpy(sgshin, "SGSH_IN=0");
+    ninputfds_expected = 0;
+    }
   putenv(sgshin);
   if (!isatty(fileno(stdout)) &&
-      (S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode))) {
+      (S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode)))
+    {
     strcpy(sgshout, "SGSH_OUT=1");
     noutputfds_expected = 1;
-  } else {
+    }
+  else
+    {
     strcpy(sgshout, "SGSH_OUT=0");
     noutputfds_expected = 0;
-  }
+    }
   putenv(sgshout);
 
-  if ((status = sgsh_negotiate("paste", -1, noutputfds_expected, &inputfds,
-                                    &ninputfds, &outputfds, &noutputfds))) {
+  if ((status = sgsh_negotiate("paste", ninputfds_expected, noutputfds_expected,
+				&inputfds, &ninputfds, &outputfds, &noutputfds)))
+  {
     printf("sgsh negotiation failed with status code %d.\n", status);
     exit(1);
   }
 
+  /* An assertion on the expected input channels does not make sense
+   * when paste is active on the input side; we don't know how many there
+   * will be beforehand.
+   */
   assert(noutputfds == noutputfds_expected);
   if (noutputfds == 1)
     outstream = fdopen(outputfds[0], "w");

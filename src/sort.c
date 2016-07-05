@@ -3936,7 +3936,7 @@ sort (char ***files, size_t nfiles, char const *output_file,
    * when paste is active on the input side; we don't know how many there
    * will be beforehand.
    */
-  assert(noutputfds = noutputfds_expected);
+  assert(noutputfds == noutputfds_expected);
 
   /* Count stdin input file directives */
   for (j = 0; j < nfiles; j++)

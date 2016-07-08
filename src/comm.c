@@ -335,6 +335,7 @@ compare_files (char **infiles)
   if (!istreams[1])
     error (EXIT_FAILURE, errno, "%s", quotef (infiles[1]));
 
+  ostreams[0] = ostreams[1] = ostreams[2] = stdout;
   for (i = 0; i < noutputfds; i++)
     ostreams[i] = fdopen(outputfds[i], "w");
   

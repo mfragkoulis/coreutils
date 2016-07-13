@@ -216,34 +216,19 @@ paste_parallel (size_t nfiles, char **fnamptr)
   int noutputfds = -1, noutputfds_expected = -1;
   int *inputfds;
   int *outputfds;
-  char sgshin[10];
-  char sgshout[11];
   struct stat stats;
   int re = fstat(fileno(stdout), &stats);
   if (re < 0)
     error(EXIT_FAILURE, errno, "fstat failed\n");
 
   /* sgsh */
-  if (!isatty(fileno(stdin)))
-    strcpy(sgshin, "SGSH_IN=1");
-  else
-    {
-    strcpy(sgshin, "SGSH_IN=0");
+  if (isatty(fileno(stdin)))
     ninputfds_expected = 0;
-    }
-  putenv(sgshin);
   if (!isatty(fileno(stdout)) &&
       (S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode)))
-    {
-    strcpy(sgshout, "SGSH_OUT=1");
     noutputfds_expected = 1;
-    }
   else
-    {
-    strcpy(sgshout, "SGSH_OUT=0");
     noutputfds_expected = 0;
-    }
-  putenv(sgshout);
 
   if ((status = sgsh_negotiate("paste", ninputfds_expected, noutputfds_expected,
 				&inputfds, &ninputfds, &outputfds, &noutputfds)))

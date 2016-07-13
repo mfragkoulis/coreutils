@@ -1032,8 +1032,6 @@ main (int argc, char **argv)
   int noutputfds = -1, noutputfds_expected = -1;
   int *inputfds;
   int *outputfds;
-  char sgshin[10];
-  char sgshout[11];
   struct stat stats;
   int re = fstat(fileno(stdout), &stats);
   if (re < 0)
@@ -1211,20 +1209,11 @@ main (int argc, char **argv)
     join_field_2 = 0;
 
   /* sgsh */
-  if (!isatty(fileno(stdin)))
-    strcpy(sgshin, "SGSH_IN=1");
-  else
-    strcpy(sgshin, "SGSH_IN=0");
-  putenv(sgshin);
   if (!isatty(fileno(stdout)) &&
-      (S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode))) {
-    strcpy(sgshout, "SGSH_OUT=1");
+      (S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode)))
     noutputfds_expected = 1;
-  } else {
-    strcpy(sgshout, "SGSH_OUT=0");
+  else
     noutputfds_expected = 0;
-  }
-  putenv(sgshout);
   if (STREQ (g_names[0], "-"))
 	  ninputfds_expected++;
   if (STREQ (g_names[1], "-"))

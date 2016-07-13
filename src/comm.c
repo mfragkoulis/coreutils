@@ -284,8 +284,6 @@ compare_files (char **infiles)
   int noutputfds = -1;
   int *inputfds;
   int *outputfds;
-  char sgshin[10];
-  char sgshout[11];
   int status = -1;
   struct stat stats;
   int re = fstat(fileno(stdout), &stats);
@@ -293,29 +291,13 @@ compare_files (char **infiles)
     error(EXIT_FAILURE, errno, "fstat failed\n");
 
   /* sgsh */
-  strcpy(sgshin, "SGSH_IN=0");
   if (STREQ(infiles[0], "-"))
-    {
-    strcpy(sgshin, "SGSH_IN=1");
     ninputfds_expected++;
-    }
   if (STREQ(infiles[1], "-"))
-    {
-    strcpy(sgshin, "SGSH_IN=1");
     ninputfds_expected++;
-    }
-  putenv(sgshin);
-  if (!isatty(fileno(stdout)) &&
-      (S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode)))
-    {
-    strcpy(sgshout, "SGSH_OUT=1");
-    }
-  else
-    { 
-    strcpy(sgshout, "SGSH_OUT=0");
+  if (isatty(fileno(stdout)) ||
+      !(S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode)))
     noutputfds_expected = 0;
-    }
-  putenv(sgshout);
 
   if ((status = sgsh_negotiate("comm", ninputfds_expected, noutputfds_expected,
       &inputfds, &ninputfds, &outputfds, &noutputfds))) {

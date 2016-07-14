@@ -32,7 +32,6 @@
 
 /*  sgsh negotiate API (fix -I) */
 #include <assert.h>
-#include <sys/stat.h>	/* struct stat */
 #include "sgsh-negotiate.h"
 
 /* The official name of this program (e.g., no 'g' prefix).  */
@@ -47,7 +46,7 @@
 #define min(x, y) ((x) < (y) ? (x) : (y))
 
 /* sgsh */
-static int noutputfds_expected;
+static int noutputfds;
 
 /* True if the LC_COLLATE locale is hard.  */
 static bool hard_LC_COLLATE;
@@ -280,47 +279,39 @@ compare_files (char **infiles)
 
   int i, j;
   /* sgsh */
-  int ninputfds = -1, ninputfds_expected = 0;
-  int noutputfds = -1;
+  int ninputfds = 0;
   int *inputfds;
   int *outputfds;
   int status = -1;
-  struct stat stats;
-  int re = fstat(fileno(stdout), &stats);
-  if (re < 0)
-    error(EXIT_FAILURE, errno, "fstat failed\n");
 
   /* sgsh */
   if (STREQ(infiles[0], "-"))
-    ninputfds_expected++;
+    ninputfds++;
   if (STREQ(infiles[1], "-"))
-    ninputfds_expected++;
-  if (isatty(fileno(stdout)) ||
-      !(S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode)))
-    noutputfds_expected = 0;
+    ninputfds++;
 
-  if ((status = sgsh_negotiate("comm", ninputfds_expected, noutputfds_expected,
-      &inputfds, &ninputfds, &outputfds, &noutputfds))) {
+  if ((status = sgsh_negotiate("comm", &ninputfds, &noutputfds,
+				  &inputfds, &outputfds))) {
     printf("sgsh negotiation failed with status code %d.\n", status);
     exit(1);
   }
 
-  /* sgsh */
-  assert(ninputfds == ninputfds_expected);
-  assert(noutputfds == noutputfds_expected);
-
-  istreams[0] = STREQ (infiles[0], "-") ? fdopen(inputfds[0], "r") : fopen (infiles[0], "r");
+  /* The first file descriptor has been set to stdin */
+  istreams[0] = STREQ (infiles[0], "-") ? stdin : fopen (infiles[0], "r");
   if (!istreams[0])
     error (EXIT_FAILURE, errno, "%s", quotef (infiles[0]));
 
-  istreams[1] = STREQ (infiles[1], "-") ? fdopen(inputfds[1], "r") : fopen (infiles[1], "r");
+  if (STREQ (infiles[1], "-"))
+    istreams[1] = (ninputfds == 2 ? fdopen(inputfds[1], "r") : stdin);
+  else
+    istreams[1] = fopen (infiles[1], "r");
   if (!istreams[1])
     error (EXIT_FAILURE, errno, "%s", quotef (infiles[1]));
 
   ostreams[0] = ostreams[1] = ostreams[2] = stdout;
-  for (i = 0; i < noutputfds; i++)
+  /* The first file descriptor has been set to stdout */
+  for (i = 1; i < noutputfds; i++)
     ostreams[i] = fdopen(outputfds[i], "w");
-  
 
   /* Initialize the storage. */
   for (i = 0; i < 2; i++)
@@ -439,7 +430,7 @@ main (int argc, char **argv)
   only_file_2 = true;
   both = true;
   /* sgsh */
-  noutputfds_expected = 3;
+  noutputfds = 3;
 
   seen_unpairable = false;
   issued_disorder_warning[0] = issued_disorder_warning[1] = false;
@@ -450,17 +441,17 @@ main (int argc, char **argv)
       {
       case '1':
         only_file_1 = false;
-	noutputfds_expected--;
+	noutputfds--;
         break;
 
       case '2':
         only_file_2 = false;
-	noutputfds_expected--;
+	noutputfds--;
         break;
 
       case '3':
         both = false;
-	noutputfds_expected--;
+	noutputfds--;
         break;
 
       case 'z':

@@ -46,9 +46,6 @@
 
 #define join system_join
 
-/* sgsh */
-#define putchar_fd(c) fputc(c, outfile);
-
 #define SWAPLINES(a, b) do { \
   struct line *tmp = a; \
   a = b; \
@@ -93,9 +90,6 @@ struct seq
     size_t alloc;			/* Elements allocated in 'lines'.  */
     struct line **lines;
   };
-
-/* sgsh */
-static FILE* outfile;
 
 /* The previous line read from each file.  */
 static struct line *prevline[2] = {NULL, NULL};
@@ -567,12 +561,12 @@ prfield (size_t n, struct line const *line)
     {
       len = line->fields[n].len;
       if (len)
-        fwrite (line->fields[n].beg, 1, len, outfile);
+        fwrite (line->fields[n].beg, 1, len, stdout);
       else if (empty_filler)
-        fputs (empty_filler, outfile);
+        fputs (empty_filler, stdout);
     }
   else if (empty_filler)
-    fputs (empty_filler, outfile);
+    fputs (empty_filler, stdout);
 }
 
 /* Output all the fields in line, other than the join field.  */
@@ -586,12 +580,12 @@ prfields (struct line const *line, size_t join_field, size_t autocount)
 
   for (i = 0; i < join_field && i < nfields; ++i)
     {
-      putchar_fd (output_separator);
+      putchar (output_separator);
       prfield (i, line);
     }
   for (i = join_field + 1; i < nfields; ++i)
     {
-      putchar_fd (output_separator);
+      putchar (output_separator);
       prfield (i, line);
     }
 }
@@ -636,9 +630,9 @@ prjoin (struct line const *line1, struct line const *line2)
           o = o->next;
           if (o == NULL)
             break;
-          putchar_fd (output_separator);
+          putchar (output_separator);
         }
-      putchar_fd (eolchar);
+      putchar (eolchar);
     }
   else
     {
@@ -661,7 +655,7 @@ prjoin (struct line const *line1, struct line const *line2)
       prfields (line1, join_field_1, autocount_1);
       prfields (line2, join_field_2, autocount_2);
 
-      putchar_fd (eolchar);
+      putchar (eolchar);
     }
 }
 
@@ -1028,14 +1022,8 @@ main (int argc, char **argv)
   int i;
 
   /* sgsh */
-  int ninputfds = -1, ninputfds_expected = 0;
-  int noutputfds = -1, noutputfds_expected = -1;
+  int ninputfds = 0;
   int *inputfds;
-  int *outputfds;
-  struct stat stats;
-  int re = fstat(fileno(stdout), &stats);
-  if (re < 0)
-    error(EXIT_FAILURE, errno, "fstat failed\n");
 
   initialize_main (&argc, &argv);
   set_program_name (argv[0]);
@@ -1208,29 +1196,19 @@ main (int argc, char **argv)
   if (join_field_2 == SIZE_MAX)
     join_field_2 = 0;
 
-  /* sgsh */
-  if (!isatty(fileno(stdout)) &&
-      (S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode)))
-    noutputfds_expected = 1;
-  else
-    noutputfds_expected = 0;
   if (STREQ (g_names[0], "-"))
-	  ninputfds_expected++;
+	  ninputfds++;
   if (STREQ (g_names[1], "-"))
-	  ninputfds_expected++;
-  sgsh_negotiate("join", ninputfds_expected, noutputfds_expected, &inputfds,
-                                   &ninputfds, &outputfds, &noutputfds);
+	  ninputfds++;
+  sgsh_negotiate("join", &ninputfds, NULL, &inputfds, NULL);
 
-  /* sgsh */
-  assert(ninputfds == ninputfds_expected);
-  assert(noutputfds == noutputfds_expected);
-
-  outfile = noutputfds == 1 ? fdopen(outputfds[0], "w") : stdout;
-
-  fp1 = STREQ (g_names[0], "-") ? fdopen(inputfds[0], "r") : fopen (g_names[0], "r");
+  fp1 = STREQ (g_names[0], "-") ? stdin : fopen (g_names[0], "r");
   if (!fp1)
       error (EXIT_FAILURE, errno, "%s", quotef (g_names[0]));
-  fp2 = STREQ (g_names[1], "-") ? fdopen(inputfds[1], "r") : fopen (g_names[1], "r");
+  if (STREQ (g_names[1], "-"))
+    fp2 = (ninputfds == 2 ? fdopen(inputfds[1], "r") : stdin);
+  else
+    fp2 = fopen (g_names[1], "r");
   if (!fp2)
       error (EXIT_FAILURE, errno, "%s", quotef (g_names[1]));
 

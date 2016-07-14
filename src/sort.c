@@ -55,7 +55,6 @@
 
 /*  sgsh negotiate API (fix -I) */
 #include <assert.h>
-#include <sys/stat.h>	/* struct stat */
 #include "sgsh-negotiate.h"
 
 #ifndef RLIMIT_DATA
@@ -3892,38 +3891,18 @@ sort (char ***files, size_t nfiles, char const *output_file,
 
   /* sgsh */
   int j = 0;
-  int ninputfds = -1, ninputfds_expected = -1;
-  int noutputfds = -1, noutputfds_expected = 0;
+  int ninputfds = -1;
   int *inputfds;
-  int *outputfds;
   int status = -1;
   int count_stdin_files = 0;
 
   buf.alloc = 0;
 
-  /* sgsh */
-  if (isatty(fileno(stdin)))
-    ninputfds_expected = 0;
-  struct stat stats;
-  int re = fstat(fileno(stdout), &stats);
-  if (re < 0)
-    error(SORT_FAILURE, errno, "fstat failed\n");
-  if (!isatty(fileno(stdout)) &&
-      (S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode)))
-    noutputfds_expected = 1;
-
-  if ((status = sgsh_negotiate("sort", ninputfds_expected, noutputfds_expected,
-			&inputfds, &ninputfds, &outputfds, &noutputfds)))
+  if ((status = sgsh_negotiate("sort", &ninputfds, NULL, &inputfds, NULL)) != 0)
     {
     printf("sgsh negotiation failed with status code %d.\n", status);
     exit(1);
     }
-
-  /* An assertion on the expected input channels does not make sense
-   * when paste is active on the input side; we don't know how many there
-   * will be beforehand.
-   */
-  assert(noutputfds == noutputfds_expected);
 
   /* Count stdin input file directives */
   for (j = 0; j < nfiles; j++)
@@ -3955,7 +3934,13 @@ sort (char ***files, size_t nfiles, char const *output_file,
       /* sgsh */
       if (STREQ(file, "-"))
         {
-        fp = fdopen(inputfds[j++], "r");
+        if (j == 0)
+          {
+          j++;
+	  fp = stdin;
+	  }
+        else
+          fp = fdopen(inputfds[j++], "r");
         have_read_stdin = true;
         }
       else
@@ -4005,9 +3990,7 @@ sort (char ***files, size_t nfiles, char const *output_file,
           if (buf.eof && !nfiles && !ntemps && !buf.left)
             {
               xfclose (fp, file);
-              /* sgsh */
-              if (noutputfds > 0) tfp = fdopen(outputfds[0], "w");
-              else tfp = xfopen (output_file, "w");
+              tfp = xfopen (output_file, "w");
               temp_output = output_file;
               output_file_created = true;
             }

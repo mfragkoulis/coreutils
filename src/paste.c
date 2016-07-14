@@ -46,7 +46,6 @@
 
 /*  sgsh negotiate API (fix -I) */
 #include <assert.h>
-#include <sys/stat.h>	/* struct stat */
 #include "sgsh-negotiate.h"
 
 /* The official name of this program (e.g., no 'g' prefix).  */
@@ -58,9 +57,6 @@
 
 /* Indicates that no delimiter should be added in the current position. */
 #define EMPTY_DELIM '\0'
-
-/* sgsh */
-static  FILE *outstream;
 
 /* If nonzero, we have read standard input at some point. */
 static bool have_read_stdin;
@@ -176,8 +172,7 @@ write_error (void)
 static inline void
 xputchar (char c)
 {
-  /* sgsh */
-  if (fputc (c, outstream) < 0)
+  if (putchar (c) < 0)
     write_error ();
 }
 
@@ -212,40 +207,17 @@ paste_parallel (size_t nfiles, char **fnamptr)
   /* sgsh */
   int status = -1;
   int j = 0;
-  int ninputfds = -1, ninputfds_expected = -1;
-  int noutputfds = -1, noutputfds_expected = -1;
+  int ninputfds = -1;
   int *inputfds;
-  int *outputfds;
-  struct stat stats;
-  int re = fstat(fileno(stdout), &stats);
-  if (re < 0)
-    error(EXIT_FAILURE, errno, "fstat failed\n");
 
-  /* sgsh */
-  if (isatty(fileno(stdin)))
-    ninputfds_expected = 0;
-  if (!isatty(fileno(stdout)) &&
-      (S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode)))
-    noutputfds_expected = 1;
-  else
-    noutputfds_expected = 0;
-
-  if ((status = sgsh_negotiate("paste", ninputfds_expected, noutputfds_expected,
-				&inputfds, &ninputfds, &outputfds, &noutputfds)))
+  if ((status = sgsh_negotiate("paste", &ninputfds, NULL,
+				&inputfds, NULL)) != 0)
   {
     printf("sgsh negotiation failed with status code %d.\n", status);
     exit(1);
   }
-
-  /* An assertion on the expected input channels does not make sense
-   * when paste is active on the input side; we don't know how many there
-   * will be beforehand.
-   */
-  assert(noutputfds == noutputfds_expected);
-  if (noutputfds == 1)
-    outstream = fdopen(outputfds[0], "w");
-  else
-    outstream = stdout;
+  fprintf(stderr, "%s(): ninputfds: %d\n", __func__, ninputfds);
+  //exit(1);
 /*
   for (j = 0; j < ninputfds; j++)
     fprintf(stderr, "paste: inputfd: %d\n", inputfds[j]);
@@ -258,8 +230,18 @@ paste_parallel (size_t nfiles, char **fnamptr)
       if (STREQ (fnamptr[files_open], "-"))
         {
           have_read_stdin = true;
-          /* sgsh */
-          fileptr[files_open] = fdopen(inputfds[j++], "r");
+          /* sgsh: first file descriptor has been set to stdin */
+	  if (j == 0)
+            {
+	    fprintf(stderr, "Set stdin\n");
+            j++;
+            fileptr[files_open] = stdin;
+	    }
+	  else
+	    {
+            fileptr[files_open] = fdopen(inputfds[j++], "r");
+	    fprintf(stderr, "shouldn't happen\n");
+	    }
         }
       else
         {
@@ -312,8 +294,7 @@ paste_parallel (size_t nfiles, char **fnamptr)
               err = errno;
               if (chr != EOF && delims_saved)
                 {
-                  /* sgsh */
-                  if (fwrite (delbuf, 1, delims_saved, outstream) != delims_saved)
+                  if (fwrite (delbuf, 1, delims_saved, stdout) != delims_saved)
                     write_error ();
                   delims_saved = 0;
                 }
@@ -361,7 +342,7 @@ paste_parallel (size_t nfiles, char **fnamptr)
                       /* No.  Some files were not closed for this line. */
                       if (delims_saved)
                         {
-                          if (fwrite (delbuf, 1, delims_saved, outstream)
+                          if (fwrite (delbuf, 1, delims_saved, stdout)
                               != delims_saved)
                             write_error ();
                           delims_saved = 0;
@@ -422,26 +403,17 @@ paste_serial (size_t nfiles, char **fnamptr)
   FILE *fileptr;	/* Open for reading current file. */
 
   /* sgsh */
+  int status = -1;
   int j = 0;
   int ninputfds = -1;
-  int noutputfds = -1;
   int *inputfds;
-  int *outputfds;
-  char sgshin[10];
-  char sgshout[11];
-  //FILE *outstream; no reference to stdout in this function.
 
-  /* sgsh */
-  strcpy(sgshin, "SGSH_IN=1");
-  putenv(sgshin);
-  strcpy(sgshout, "SGSH_OUT=1");
-  putenv(sgshout);
-  sgsh_negotiate("paste", -1, 1, &inputfds, &ninputfds, &outputfds,
-                                                          &noutputfds);
-
-  assert(ninputfds >= 1);
-  assert(noutputfds == 1);
-  //outstream = fdopen(outputfds[0], "w");
+  if ((status = sgsh_negotiate("paste", &ninputfds, NULL,
+				  &inputfds, NULL)) != 0)
+  {
+    printf("sgsh negotiation failed with status code %d.\n", status);
+    exit(1);
+  }
 
   for (; nfiles; nfiles--, fnamptr++)
     {
@@ -450,7 +422,11 @@ paste_serial (size_t nfiles, char **fnamptr)
       if (is_stdin)
         {
           have_read_stdin = true;
-          fileptr = fdopen(inputfds[j++], "r");
+	  /* sgsh */
+	  if (j == 0)
+            j++;
+	  else
+            fileptr = fdopen(inputfds[j++], "r");
         }
       else
         {

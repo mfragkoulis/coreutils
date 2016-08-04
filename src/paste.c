@@ -233,15 +233,11 @@ paste_parallel (size_t nfiles, char **fnamptr)
           /* sgsh: first file descriptor has been set to stdin */
 	  if (j == 0)
             {
-	    fprintf(stderr, "Set stdin\n");
             j++;
             fileptr[files_open] = stdin;
 	    }
 	  else
-	    {
             fileptr[files_open] = fdopen(inputfds[j++], "r");
-	    fprintf(stderr, "shouldn't happen\n");
-	    }
         }
       else
         {

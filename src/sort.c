@@ -3891,12 +3891,15 @@ sort (char ***files, size_t nfiles, char const *output_file,
 
   /* sgsh */
   int j = 0;
-  int ninputfds = -1;
+  int ninputfds = 0;
   int *inputfds;
   int status = -1;
   int count_stdin_files = 0;
 
   buf.alloc = 0;
+
+  if (nfiles == 1 && STREQ((*files)[0], "-"))
+    ninputfds = -1;
 
   if ((status = sgsh_negotiate("sort", &ninputfds, NULL, &inputfds, NULL)) != 0)
     {

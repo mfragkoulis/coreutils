@@ -1200,7 +1200,24 @@ main (int argc, char **argv)
 	  ninputfds++;
   if (STREQ (g_names[1], "-"))
 	  ninputfds++;
-  sgsh_negotiate("join", &ninputfds, NULL, &inputfds, NULL);
+
+  char negotiation_title[100];
+  if (argc >= 3)
+    snprintf(negotiation_title, 100, "%s %s %s",
+	argv[0], argv[1], argv[2]);
+  else if (argc == 2)
+    snprintf(negotiation_title, 100, "%s %s",
+	argv[0], argv[1]);
+  else
+    snprintf(negotiation_title, 100, "%s", argv[0]);
+
+  int exit_status;
+  if ((exit_status = sgsh_negotiate(negotiation_title,
+				  &ninputfds, NULL, &inputfds, NULL)) != 0)
+    {
+      printf("sgsh negotiation failed with status code %d.\n", exit_status);
+      exit(1);
+    }
 
   fp1 = STREQ (g_names[0], "-") ? stdin : fopen (g_names[0], "r");
   if (!fp1)

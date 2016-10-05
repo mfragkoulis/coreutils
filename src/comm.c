@@ -33,6 +33,7 @@
 /*  sgsh negotiate API (fix -I) */
 #include <assert.h>
 #include "sgsh-negotiate.h"
+char negotiation_title[100];
 
 /* The official name of this program (e.g., no 'g' prefix).  */
 #define PROGRAM_NAME "comm"
@@ -290,11 +291,13 @@ compare_files (char **infiles)
   if (STREQ(infiles[1], "-"))
     ninputfds++;
 
-  if ((status = sgsh_negotiate("comm", &ninputfds, &noutputfds,
-				  &inputfds, &outputfds))) {
-    printf("sgsh negotiation failed with status code %d.\n", status);
-    exit(1);
-  }
+
+  if ((status = sgsh_negotiate(negotiation_title, &ninputfds, &noutputfds,
+				  &inputfds, &outputfds)))
+    {
+      printf("sgsh negotiation failed with status code %d.\n", status);
+      exit(1);
+    }
 
   /* The first file descriptor has been set to stdin */
   istreams[0] = STREQ (infiles[0], "-") ? stdin : fopen (infiles[0], "r");
@@ -429,7 +432,17 @@ main (int argc, char **argv)
   only_file_1 = true;
   only_file_2 = true;
   both = true;
+
   /* sgsh */
+  if (argc >= 3)
+    snprintf(negotiation_title, 100, "%s %s %s",
+	argv[0], argv[1], argv[2]);
+  else if (argc == 2)
+    snprintf(negotiation_title, 100, "%s %s",
+	argv[0], argv[1]);
+  else
+    snprintf(negotiation_title, 100, "%s", argv[0]);
+
   noutputfds = 3;
 
   seen_unpairable = false;

@@ -56,6 +56,7 @@
 /*  sgsh negotiate API (fix -I) */
 #include <assert.h>
 #include "sgsh-negotiate.h"
+char negotiation_title[100];
 
 #ifndef RLIMIT_DATA
 struct rlimit { size_t rlim_cur; };
@@ -3901,7 +3902,8 @@ sort (char ***files, size_t nfiles, char const *output_file,
   if (nfiles == 1 && STREQ((*files)[0], "-"))
     ninputfds = -1;
 
-  if ((status = sgsh_negotiate("sort", &ninputfds, NULL, &inputfds, NULL)) != 0)
+  if ((status = sgsh_negotiate(negotiation_title,
+				  &ninputfds, NULL, &inputfds, NULL)) != 0)
     {
     printf("sgsh negotiation failed with status code %d.\n", status);
     exit(1);
@@ -4279,6 +4281,15 @@ main (int argc, char **argv)
 
   have_read_stdin = false;
   inittables ();
+
+  if (argc >= 3)
+    snprintf(negotiation_title, 100, "%s %s %s",
+		argv[0], argv[1], argv[2]);
+  else if (argc == 2)
+    snprintf(negotiation_title, 100, "%s %s",
+		argv[0], argv[1]);
+  else
+    snprintf(negotiation_title, 100, "%s", argv[0]);
 
   {
     size_t i;

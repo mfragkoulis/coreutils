@@ -58,6 +58,9 @@
 /* Indicates that no delimiter should be added in the current position. */
 #define EMPTY_DELIM '\0'
 
+/* sgsh */
+char negotiation_title[100];
+
 /* If nonzero, we have read standard input at some point. */
 static bool have_read_stdin;
 
@@ -210,7 +213,7 @@ paste_parallel (size_t nfiles, char **fnamptr)
   int ninputfds = -1;
   int *inputfds;
 
-  if ((status = sgsh_negotiate("paste", &ninputfds, NULL,
+  if ((status = sgsh_negotiate(negotiation_title, &ninputfds, NULL,
 				&inputfds, NULL)) != 0)
   {
     printf("sgsh negotiation failed with status code %d.\n", status);
@@ -540,6 +543,15 @@ main (int argc, char **argv)
 
   have_read_stdin = false;
   serial_merge = false;
+
+  if (argc >= 3)
+    snprintf(negotiation_title, 100, "%s %s %s",
+		argv[0], argv[1], argv[2]);
+  else if (argc == 2)
+    snprintf(negotiation_title, 100, "%s %s",
+		argv[0], argv[1]);
+  else
+    snprintf(negotiation_title, 100, "%s", argv[0]);
 
   while ((optc = getopt_long (argc, argv, "d:sz", longopts, NULL)) != -1)
     {

@@ -219,7 +219,7 @@ paste_parallel (size_t nfiles, char **fnamptr)
     printf("sgsh negotiation failed with status code %d.\n", status);
     exit(1);
   }
-  fprintf(stderr, "%s(): ninputfds: %d\n", __func__, ninputfds);
+  //fprintf(stderr, "%s(): ninputfds: %d\n", __func__, ninputfds);
   //exit(1);
 /*
   for (j = 0; j < ninputfds; j++)

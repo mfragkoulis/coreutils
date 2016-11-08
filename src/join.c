@@ -1173,13 +1173,21 @@ main (int argc, char **argv)
   fprintf(stderr, "g_names[1]: %s\n", g_names[1]);
   fprintf(stderr, "nfiles: %d\n", nfiles);
 */
-  if (nfiles != 2)
+  switch (nfiles)
     {
-      if (nfiles == 0)
+      case 0:
+	g_names[0] = (char *)"-";
+	g_names[1] = (char *)"-";
+	break;
+      case 1:
+	g_names[1] = (char *)"-";
+	break;
+      /*if (nfiles == 0)
         error (0, 0, _("missing operand"));
       else
         error (0, 0, _("missing operand after %s"), quote (argv[argc - 1]));
       usage (EXIT_FAILURE);
+      */
     }
 
   /* If "-j1" was specified and it turns out not to have had an argument,

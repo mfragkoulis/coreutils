@@ -184,7 +184,7 @@ xputchar (char c)
    opened or read. */
 
 static bool
-paste_parallel (size_t nfiles, char **fnamptr)
+paste_parallel (size_t nfiles, char **fnamptr, int *sgsh_inputfds)
 {
   bool ok = true;
   /* If all files are just ready to be closed, or will be on this
@@ -207,27 +207,7 @@ paste_parallel (size_t nfiles, char **fnamptr)
      number of files, but at the (considerable) expense of remembering
      each file and its current offset, then opening/reading/closing.  */
 
-  /* sgsh */
-  int status = -1;
   int j = 0;
-  int ninputfds = -1;
-  int *inputfds;
-
-  if ((status = sgsh_negotiate(negotiation_title, &ninputfds, NULL,
-				&inputfds, NULL)) != 0)
-  {
-    printf("sgsh negotiation failed with status code %d.\n", status);
-    exit(1);
-  }
-  //fprintf(stderr, "%s(): ninputfds: %d\n", __func__, ninputfds);
-  //exit(1);
-/*
-  for (j = 0; j < ninputfds; j++)
-    fprintf(stderr, "paste: inputfd: %d\n", inputfds[j]);
-  for (j = 0; j < noutputfds; j++)
-    fprintf(stderr, "paste: outputfd: %d\n", outputfds[j]);
-*/
-
   for (files_open = 0; files_open < nfiles; ++files_open)
     {
       if (STREQ (fnamptr[files_open], "-"))
@@ -236,11 +216,11 @@ paste_parallel (size_t nfiles, char **fnamptr)
           /* sgsh: first file descriptor has been set to stdin */
 	  if (j == 0)
             {
-            j++;
-            fileptr[files_open] = stdin;
+              j++;
+              fileptr[files_open] = stdin;
 	    }
 	  else
-            fileptr[files_open] = fdopen(inputfds[j++], "r");
+            fileptr[files_open] = fdopen(sgsh_inputfds[j++], "r");
         }
       else
         {
@@ -249,9 +229,9 @@ paste_parallel (size_t nfiles, char **fnamptr)
             error (EXIT_FAILURE, errno, "%s", quotef (fnamptr[files_open]));
           else if (fileno (fileptr[files_open]) == STDIN_FILENO)
             {
-            opened_stdin = true;
-            /* sgsh */
-            fileptr[files_open] = fdopen(inputfds[j++], "r");
+              opened_stdin = true;
+              /* sgsh */
+              fileptr[files_open] = fdopen(sgsh_inputfds[j++], "r");
             }
           fadvise (fileptr[files_open], FADVISE_SEQUENTIAL);
         }
@@ -579,8 +559,10 @@ main (int argc, char **argv)
         }
     }
 
+  /* sgsh: this is a legitimate case; see below
   if (optind == argc)
     argv[argc++] = bad_cast ("-");
+   */
 
   if (collapse_escapes (delim_arg))
     {
@@ -591,8 +573,36 @@ main (int argc, char **argv)
              quotearg_n_style_colon (0, c_maybe_quoting_style, delim_arg));
     }
 
+  /* sgsh */
+  int status = -1;
+  int j = 0;
+  int ninputfds = -1;
+  int *inputfds;
+
+  if ((status = sgsh_negotiate(negotiation_title, &ninputfds, NULL,
+				&inputfds, NULL)) != 0)
+  {
+    printf("sgsh negotiation failed with status code %d.\n", status);
+    exit(1);
+  }
+
+/*
+  for (j = 0; j < ninputfds; j++)
+    fprintf(stderr, "paste: inputfd: %d\n", inputfds[j]);
+  for (j = 0; j < noutputfds; j++)
+    fprintf(stderr, "paste: outputfd: %d\n", outputfds[j]);
+*/
+
+  char *files[argc - optind + ninputfds];
+  for (j = 0; j < argc - optind + ninputfds; j++) {
+    if (j < ninputfds)
+      files[j] = (char *)"-";
+    else
+      files[j] = argv[optind + j - ninputfds];
+  }
+
   if (!serial_merge)
-    ok = paste_parallel (argc - optind, &argv[optind]);
+    ok = paste_parallel (argc - optind + ninputfds, (char **)&files, inputfds);
   else
     ok = paste_serial (argc - optind, &argv[optind]);
 

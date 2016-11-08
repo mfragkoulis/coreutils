@@ -250,7 +250,7 @@ check_order (struct linebuffer const *prev,
    merge them and output the result.  */
 
 static void
-compare_files (char **infiles)
+compare_files (int nfiles, char **infiles)
 {
   /* For each file, we have four linebuffers in lba. */
   struct linebuffer lba[2][4];
@@ -280,17 +280,17 @@ compare_files (char **infiles)
 
   int i, j;
   /* sgsh */
-  int ninputfds = 0;
+  int ninputfds = 2 - nfiles;
   int *inputfds;
   int *outputfds;
   int status = -1;
 
-  /* sgsh */
+  /* sgsh 
   if (STREQ(infiles[0], "-"))
     ninputfds++;
   if (STREQ(infiles[1], "-"))
     ninputfds++;
-
+  */
 
   if ((status = sgsh_negotiate(negotiation_title, &ninputfds, &noutputfds,
 				  &inputfds, &outputfds)))
@@ -300,8 +300,20 @@ compare_files (char **infiles)
     }
 
   /* The first file descriptor has been set to stdin */
-  istreams[0] = STREQ (infiles[0], "-") ? stdin : fopen (infiles[0], "r");
-  if (!istreams[0])
+  if (ninputfds > 0)
+    {
+      istreams[0] = stdin;
+      if (ninputfds == 2)
+        istreams[1] = fdopen(inputfds[1], "r");
+      else
+        istreams[1] = fopen (infiles[0], "r");
+    }
+  else
+    {
+      istreams[0] = fopen (infiles[0], "r");
+      istreams[1] = fopen (infiles[1], "r");
+    }
+  /*if (!istreams[0])
     error (EXIT_FAILURE, errno, "%s", quotef (infiles[0]));
 
   if (STREQ (infiles[1], "-"))
@@ -310,6 +322,7 @@ compare_files (char **infiles)
     istreams[1] = fopen (infiles[1], "r");
   if (!istreams[1])
     error (EXIT_FAILURE, errno, "%s", quotef (infiles[1]));
+  */
 
   ostreams[0] = ostreams[1] = ostreams[2] = stdout;
   /* The first file descriptor has been set to stdout */
@@ -497,6 +510,7 @@ main (int argc, char **argv)
   if (! col_sep_len)
     col_sep_len = 1;
 
+  /* sgsh: files to compare may come implicitly from input channels
   if (argc - optind < 2)
     {
       if (argc <= optind)
@@ -511,11 +525,12 @@ main (int argc, char **argv)
       error (0, 0, _("extra operand %s"), quote (argv[optind + 2]));
       usage (EXIT_FAILURE);
     }
+    */
 
-  compare_files (argv + optind);
+  compare_files (argc - optind, argv + optind);
 
   if (issued_disorder_warning[0] || issued_disorder_warning[1])
-    return EXIT_FAILURE;
+   return EXIT_FAILURE;
   else
     return EXIT_SUCCESS;
 }

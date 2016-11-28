@@ -53,9 +53,9 @@
 #include "xnanosleep.h"
 #include "xstrtol.h"
 
-/*  sgsh negotiate API (fix -I) */
+/*  dgsh negotiate API (fix -I) */
 #include <assert.h>
-#include "sgsh-negotiate.h"
+#include "dgsh-negotiate.h"
 char negotiation_title[100];
 
 #ifndef RLIMIT_DATA
@@ -3880,7 +3880,7 @@ merge (struct sortfile *files, size_t ntemps, size_t nfiles,
 
 /* Sort NFILES FILES onto OUTPUT_FILE.  Use at most NTHREADS threads.  */
 
-/* sgsh: char ***files to be able to adapt file names */
+/* dgsh: char ***files to be able to adapt file names */
 static void
 sort (char ***files, size_t nfiles, char const *output_file,
       size_t nthreads)
@@ -3890,7 +3890,7 @@ sort (char ***files, size_t nfiles, char const *output_file,
   size_t ntemps = 0;
   bool output_file_created = false;
 
-  /* sgsh */
+  /* dgsh */
   int j = 0;
   int ninputfds = 0;
   int *inputfds;
@@ -3902,10 +3902,10 @@ sort (char ***files, size_t nfiles, char const *output_file,
   if (nfiles == 1 && STREQ((*files)[0], "-"))
     ninputfds = -1;
 
-  if ((status = sgsh_negotiate(negotiation_title,
+  if ((status = dgsh_negotiate(negotiation_title,
 				  &ninputfds, NULL, &inputfds, NULL)) != 0)
     {
-    printf("sgsh negotiation failed with status code %d.\n", status);
+    printf("dgsh negotiation failed with status code %d.\n", status);
     exit(1);
     }
 
@@ -3918,7 +3918,7 @@ sort (char ***files, size_t nfiles, char const *output_file,
   
   /**
    * Realloc space in file name array to accommodate the implicit
-   * input streams coming from sgsh.
+   * input streams coming from dgsh.
    */
   if (ninputfds > count_stdin_files)
     {
@@ -3932,11 +3932,11 @@ sort (char ***files, size_t nfiles, char const *output_file,
   while (nfiles)
     { 
       char const *temp_output;
-      /* sgsh */
+      /* dgsh */
       int m = 0;
       char const *file = (*files)[m];
       FILE *fp;
-      /* sgsh */
+      /* dgsh */
       if (STREQ(file, "-"))
         {
         if (j == 0)
@@ -4630,7 +4630,7 @@ main (int argc, char **argv)
         }
     }
 
-  /* sgsh here too? */
+  /* dgsh here too? */
   if (files_from)
     {
       FILE *stream;

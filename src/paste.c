@@ -44,9 +44,9 @@
 #include "error.h"
 #include "fadvise.h"
 
-/*  sgsh negotiate API (fix -I) */
+/*  dgsh negotiate API (fix -I) */
 #include <assert.h>
-#include "sgsh-negotiate.h"
+#include "dgsh-negotiate.h"
 
 /* The official name of this program (e.g., no 'g' prefix).  */
 #define PROGRAM_NAME "paste"
@@ -58,7 +58,7 @@
 /* Indicates that no delimiter should be added in the current position. */
 #define EMPTY_DELIM '\0'
 
-/* sgsh */
+/* dgsh */
 char negotiation_title[100];
 
 /* If nonzero, we have read standard input at some point. */
@@ -184,7 +184,7 @@ xputchar (char c)
    opened or read. */
 
 static bool
-paste_parallel (size_t nfiles, char **fnamptr, int *sgsh_inputfds)
+paste_parallel (size_t nfiles, char **fnamptr, int *dgsh_inputfds)
 {
   bool ok = true;
   /* If all files are just ready to be closed, or will be on this
@@ -213,14 +213,14 @@ paste_parallel (size_t nfiles, char **fnamptr, int *sgsh_inputfds)
       if (STREQ (fnamptr[files_open], "-"))
         {
           have_read_stdin = true;
-          /* sgsh: first file descriptor has been set to stdin */
+          /* dgsh: first file descriptor has been set to stdin */
 	  if (j == 0)
             {
               j++;
               fileptr[files_open] = stdin;
 	    }
 	  else
-            fileptr[files_open] = fdopen(sgsh_inputfds[j++], "r");
+            fileptr[files_open] = fdopen(dgsh_inputfds[j++], "r");
         }
       else
         {
@@ -230,13 +230,13 @@ paste_parallel (size_t nfiles, char **fnamptr, int *sgsh_inputfds)
           else if (fileno (fileptr[files_open]) == STDIN_FILENO)
             {
               opened_stdin = true;
-              /* sgsh */
-              fileptr[files_open] = fdopen(sgsh_inputfds[j++], "r");
+              /* dgsh */
+              fileptr[files_open] = fdopen(dgsh_inputfds[j++], "r");
             }
           fadvise (fileptr[files_open], FADVISE_SEQUENTIAL);
         }
     }
-/* sgsh scaffolding
+/* dgsh scaffolding
  for (j = 0; j < ninputfds; j++) {
 	  char buf[100];
 	  int rsize = read(inputfds[j], buf, 100);
@@ -381,16 +381,16 @@ paste_serial (size_t nfiles, char **fnamptr)
   char const *delimptr;	/* Current delimiter char. */
   FILE *fileptr;	/* Open for reading current file. */
 
-  /* sgsh */
+  /* dgsh */
   int status = -1;
   int j = 0;
   int ninputfds = -1;
   int *inputfds;
 
-  if ((status = sgsh_negotiate("paste", &ninputfds, NULL,
+  if ((status = dgsh_negotiate("paste", &ninputfds, NULL,
 				  &inputfds, NULL)) != 0)
   {
-    printf("sgsh negotiation failed with status code %d.\n", status);
+    printf("dgsh negotiation failed with status code %d.\n", status);
     exit(1);
   }
 
@@ -401,7 +401,7 @@ paste_serial (size_t nfiles, char **fnamptr)
       if (is_stdin)
         {
           have_read_stdin = true;
-	  /* sgsh */
+	  /* dgsh */
 	  if (j == 0)
             j++;
 	  else
@@ -559,7 +559,7 @@ main (int argc, char **argv)
         }
     }
 
-  /* sgsh: this is a legitimate case; see below
+  /* dgsh: this is a legitimate case; see below
   if (optind == argc)
     argv[argc++] = bad_cast ("-");
    */
@@ -573,16 +573,16 @@ main (int argc, char **argv)
              quotearg_n_style_colon (0, c_maybe_quoting_style, delim_arg));
     }
 
-  /* sgsh */
+  /* dgsh */
   int status = -1;
   int j = 0;
   int ninputfds = -1;
   int *inputfds;
 
-  if ((status = sgsh_negotiate(negotiation_title, &ninputfds, NULL,
+  if ((status = dgsh_negotiate(negotiation_title, &ninputfds, NULL,
 				&inputfds, NULL)) != 0)
   {
-    printf("sgsh negotiation failed with status code %d.\n", status);
+    printf("dgsh negotiation failed with status code %d.\n", status);
     exit(1);
   }
 

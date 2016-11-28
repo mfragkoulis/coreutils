@@ -89,8 +89,8 @@ remove_ldadd =
 # But libcoreutils.a must also follow $(LIBINTL), since libintl uses
 # replacement functions defined in libcoreutils.a.
 
-# sgsh: link against the sgsh negotiation library
-LDADD = src/libver.a lib/libcoreutils.a $(LIBINTL) lib/libcoreutils.a ../../libsgsh_negotiate.a
+# dgsh: link against the dgsh negotiation library
+LDADD = src/libver.a lib/libcoreutils.a $(LIBINTL) lib/libcoreutils.a ../../libdgsh_negotiate.a
 
 # First, list all programs, to make listing per-program libraries easier.
 # See [ below.

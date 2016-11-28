@@ -221,7 +221,7 @@ MOSTLYCLEANFILES =
 CLEANFILES =
 MOSTLYCLEANDIRS =
 
-# sgsh include path: -I../..
+# dgsh include path: -I../..
 AM_CPPFLAGS = -Ilib -I$(top_srcdir)/lib -Isrc -I$(top_srcdir)/src -I../..
 
 include $(top_srcdir)/lib/local.mk

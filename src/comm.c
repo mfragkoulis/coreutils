@@ -30,9 +30,9 @@
 #include "memcmp2.h"
 #include "xmemcoll.h"
 
-/*  sgsh negotiate API (fix -I) */
+/*  dgsh negotiate API (fix -I) */
 #include <assert.h>
-#include "sgsh-negotiate.h"
+#include "dgsh-negotiate.h"
 char negotiation_title[100];
 
 /* The official name of this program (e.g., no 'g' prefix).  */
@@ -46,7 +46,7 @@ char negotiation_title[100];
 #undef min
 #define min(x, y) ((x) < (y) ? (x) : (y))
 
-/* sgsh */
+/* dgsh */
 static int noutputfds;
 
 /* True if the LC_COLLATE locale is hard.  */
@@ -268,7 +268,7 @@ compare_files (int nfiles, char **infiles)
   int alt[2][3];
 
 
-  /* sgsh */
+  /* dgsh */
   /* istreams[i] holds the input stream for file i.  */
   FILE *istreams[2];
   /* ostreams[i] holds the output stream as follows.
@@ -279,23 +279,23 @@ compare_files (int nfiles, char **infiles)
   FILE *ostreams[3];
 
   int i, j;
-  /* sgsh */
+  /* dgsh */
   int ninputfds = 2 - nfiles;
   int *inputfds;
   int *outputfds;
   int status = -1;
 
-  /* sgsh 
+  /* dgsh 
   if (STREQ(infiles[0], "-"))
     ninputfds++;
   if (STREQ(infiles[1], "-"))
     ninputfds++;
   */
 
-  if ((status = sgsh_negotiate(negotiation_title, &ninputfds, &noutputfds,
+  if ((status = dgsh_negotiate(negotiation_title, &ninputfds, &noutputfds,
 				  &inputfds, &outputfds)))
     {
-      printf("sgsh negotiation failed with status code %d.\n", status);
+      printf("dgsh negotiation failed with status code %d.\n", status);
       exit(1);
     }
 
@@ -446,7 +446,7 @@ main (int argc, char **argv)
   only_file_2 = true;
   both = true;
 
-  /* sgsh */
+  /* dgsh */
   if (argc >= 3)
     snprintf(negotiation_title, 100, "%s %s %s",
 	argv[0], argv[1], argv[2]);
@@ -510,7 +510,7 @@ main (int argc, char **argv)
   if (! col_sep_len)
     col_sep_len = 1;
 
-  /* sgsh: files to compare may come implicitly from input channels
+  /* dgsh: files to compare may come implicitly from input channels
   if (argc - optind < 2)
     {
       if (argc <= optind)

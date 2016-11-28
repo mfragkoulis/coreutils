@@ -34,10 +34,10 @@
 #include "xstrtol.h"
 #include "argmatch.h"
 
-/*  sgsh negotiate API (fix -I) */
+/*  dgsh negotiate API (fix -I) */
 #include <assert.h>
 #include <sys/stat.h>	/* struct stat */
-#include "sgsh-negotiate.h"
+#include "dgsh-negotiate.h"
 
 /* The official name of this program (e.g., no 'g' prefix).  */
 #define PROGRAM_NAME "join"
@@ -1021,7 +1021,7 @@ main (int argc, char **argv)
   int nfiles = 0;
   int i;
 
-  /* sgsh */
+  /* dgsh */
   int ninputfds = 0;
   int *inputfds;
 
@@ -1168,7 +1168,7 @@ main (int argc, char **argv)
   while (optind < argc)
     add_file_name (argv[optind++], g_names, operand_status, joption_count,
                    &nfiles, &prev_optc_status, &optc_status);
-/* sgsh scaffolding
+/* dgsh scaffolding
   fprintf(stderr, "g_names[0]: %s\n", g_names[0]);
   fprintf(stderr, "g_names[1]: %s\n", g_names[1]);
   fprintf(stderr, "nfiles: %d\n", nfiles);
@@ -1220,10 +1220,10 @@ main (int argc, char **argv)
     snprintf(negotiation_title, 100, "%s", argv[0]);
 
   int exit_status;
-  if ((exit_status = sgsh_negotiate(negotiation_title,
+  if ((exit_status = dgsh_negotiate(negotiation_title,
 				  &ninputfds, NULL, &inputfds, NULL)) != 0)
     {
-      printf("sgsh negotiation failed with status code %d.\n", exit_status);
+      printf("dgsh negotiation failed with status code %d.\n", exit_status);
       exit(1);
     }
 

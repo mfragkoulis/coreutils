@@ -382,17 +382,13 @@ paste_serial (size_t nfiles, char **fnamptr)
   FILE *fileptr;	/* Open for reading current file. */
 
   /* dgsh */
-  int status = -1;
   int j = 0;
   int ninputfds = -1;
   int *inputfds;
 
-  if ((status = dgsh_negotiate("paste", &ninputfds, NULL,
-				  &inputfds, NULL)) != 0)
-  {
-    DPRINTF("dgsh negotiation failed with status code %d.\n", status);
+  if (dgsh_negotiate("paste", &ninputfds, NULL,
+				  &inputfds, NULL) != 0)
     exit(1);
-  }
 
   for (; nfiles; nfiles--, fnamptr++)
     {

@@ -1219,13 +1219,9 @@ main (int argc, char **argv)
   else
     snprintf(negotiation_title, 100, "%s", argv[0]);
 
-  int exit_status;
-  if ((exit_status = dgsh_negotiate(negotiation_title,
-				  &ninputfds, NULL, &inputfds, NULL)) != 0)
-    {
-      DPRINTF("dgsh negotiation failed with status code %d.\n", exit_status);
+  if (dgsh_negotiate(negotiation_title,
+				  &ninputfds, NULL, &inputfds, NULL) != 0)
       exit(1);
-    }
 
   fp1 = STREQ (g_names[0], "-") ? stdin : fopen (g_names[0], "r");
   if (!fp1)

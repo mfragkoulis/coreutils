@@ -3894,7 +3894,6 @@ sort (char ***files, size_t nfiles, char const *output_file,
   int j = 0;
   int ninputfds = 0;
   int *inputfds;
-  int status = -1;
   int count_stdin_files = 0;
 
   buf.alloc = 0;
@@ -3902,12 +3901,9 @@ sort (char ***files, size_t nfiles, char const *output_file,
   if (nfiles == 1 && STREQ((*files)[0], "-"))
     ninputfds = -1;
 
-  if ((status = dgsh_negotiate(negotiation_title,
-				  &ninputfds, NULL, &inputfds, NULL)) != 0)
-    {
-    DPRINTF("dgsh negotiation failed with status code %d.\n", status);
+  if (dgsh_negotiate(negotiation_title,
+				  &ninputfds, NULL, &inputfds, NULL) != 0)
     exit(1);
-    }
 
   /* Count stdin input file directives */
   for (j = 0; j < nfiles; j++)

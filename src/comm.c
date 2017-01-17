@@ -283,7 +283,6 @@ compare_files (int nfiles, char **infiles)
   int ninputfds = 2 - nfiles;
   int *inputfds;
   int *outputfds;
-  int status = -1;
 
   /* dgsh 
   if (STREQ(infiles[0], "-"))
@@ -292,12 +291,9 @@ compare_files (int nfiles, char **infiles)
     ninputfds++;
   */
 
-  if ((status = dgsh_negotiate(negotiation_title, &ninputfds, &noutputfds,
-				  &inputfds, &outputfds)))
-    {
-      DPRINTF("dgsh negotiation failed with status code %d.\n", status);
+  if (dgsh_negotiate(negotiation_title, &ninputfds, &noutputfds,
+				  &inputfds, &outputfds) != 0)
       exit(1);
-    }
 
   /* The first file descriptor has been set to stdin */
   if (ninputfds > 0)

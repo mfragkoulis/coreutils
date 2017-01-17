@@ -295,7 +295,7 @@ compare_files (int nfiles, char **infiles)
   if ((status = dgsh_negotiate(negotiation_title, &ninputfds, &noutputfds,
 				  &inputfds, &outputfds)))
     {
-      printf("dgsh negotiation failed with status code %d.\n", status);
+      DPRINTF("dgsh negotiation failed with status code %d.\n", status);
       exit(1);
     }
 

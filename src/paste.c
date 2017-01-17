@@ -390,7 +390,7 @@ paste_serial (size_t nfiles, char **fnamptr)
   if ((status = dgsh_negotiate("paste", &ninputfds, NULL,
 				  &inputfds, NULL)) != 0)
   {
-    printf("dgsh negotiation failed with status code %d.\n", status);
+    DPRINTF("dgsh negotiation failed with status code %d.\n", status);
     exit(1);
   }
 

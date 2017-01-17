@@ -1223,7 +1223,7 @@ main (int argc, char **argv)
   if ((exit_status = dgsh_negotiate(negotiation_title,
 				  &ninputfds, NULL, &inputfds, NULL)) != 0)
     {
-      printf("dgsh negotiation failed with status code %d.\n", exit_status);
+      DPRINTF("dgsh negotiation failed with status code %d.\n", exit_status);
       exit(1);
     }
 

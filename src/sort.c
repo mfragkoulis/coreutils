@@ -3905,7 +3905,7 @@ sort (char ***files, size_t nfiles, char const *output_file,
   if ((status = dgsh_negotiate(negotiation_title,
 				  &ninputfds, NULL, &inputfds, NULL)) != 0)
     {
-    printf("dgsh negotiation failed with status code %d.\n", status);
+    DPRINTF("dgsh negotiation failed with status code %d.\n", status);
     exit(1);
     }
 

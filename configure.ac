@@ -246,10 +246,10 @@ AM_CONDITIONAL([SINGLE_BINARY], [test "$gl_single_binary" != no])
 AC_FUNC_FORK
 
 optional_bin_progs=
-AC_CHECK_FUNCS([chroot],
-        gl_ADD_PROG([optional_bin_progs], [chroot]))
-AC_CHECK_FUNCS([gethostid],
-        gl_ADD_PROG([optional_bin_progs], [hostid]))
+#AC_CHECK_FUNCS([chroot],
+#        gl_ADD_PROG([optional_bin_progs], [chroot]))
+#AC_CHECK_FUNCS([gethostid],
+#        gl_ADD_PROG([optional_bin_progs], [hostid]))
 
 gl_WINSIZE_IN_PTEM
 
@@ -335,21 +335,21 @@ AC_CACHE_CHECK([for 3-argument setpriority function],
 if test $utils_cv_func_setpriority = no; then
   AC_CHECK_FUNCS([nice])
 fi
-case $utils_cv_func_setpriority,$ac_cv_func_nice in
-*yes*)
-  gl_ADD_PROG([optional_bin_progs], [nice])
-esac
+#case $utils_cv_func_setpriority,$ac_cv_func_nice in
+#*yes*)
+#  gl_ADD_PROG([optional_bin_progs], [nice])
+#esac
 
-AC_DEFUN([coreutils_DUMMY_1],
-[
-  AC_REQUIRE([gl_READUTMP])
-  if test $ac_cv_header_utmp_h = yes || test $ac_cv_header_utmpx_h = yes; then
-    gl_ADD_PROG([optional_bin_progs], [who])
-    gl_ADD_PROG([optional_bin_progs], [users])
-    gl_ADD_PROG([optional_bin_progs], [pinky])
-  fi
-])
-coreutils_DUMMY_1
+#AC_DEFUN([coreutils_DUMMY_1],
+#[
+#  AC_REQUIRE([gl_READUTMP])
+  #if test $ac_cv_header_utmp_h = yes || test $ac_cv_header_utmpx_h = yes; then
+  #  gl_ADD_PROG([optional_bin_progs], [who])
+  #  gl_ADD_PROG([optional_bin_progs], [users])
+  #  gl_ADD_PROG([optional_bin_progs], [pinky])
+  #fi
+#])
+#coreutils_DUMMY_1
 
 AC_MSG_CHECKING([ut_host in struct utmp])
 AC_CACHE_VAL([su_cv_func_ut_host_in_utmp],
@@ -381,13 +381,13 @@ if test -z "$have_ut_host"; then
   fi
 fi
 
-GNULIB_BOOT_TIME([gl_ADD_PROG([optional_bin_progs], [uptime])])
+#GNULIB_BOOT_TIME([gl_ADD_PROG([optional_bin_progs], [uptime])])
 
 AC_SYS_POSIX_TERMIOS()
 gl_HEADER_TIOCGWINSZ_NEEDS_SYS_IOCTL
 
 if test $ac_cv_sys_posix_termios = yes; then
-  gl_ADD_PROG([optional_bin_progs], [stty])
+#  gl_ADD_PROG([optional_bin_progs], [stty])
 
   AC_MSG_CHECKING([whether termios.h needs _XOPEN_SOURCE])
   AC_CACHE_VAL([su_cv_sys_termios_needs_xopen_source],
@@ -456,9 +456,9 @@ AC_CHECK_DECLS([strsignal, sys_siglist, _sys_siglist, __sys_siglist], , ,
 cu_GMP
 
 # Build df only if there's a point to it.
-if test $gl_cv_list_mounted_fs = yes && test $gl_cv_fs_space = yes; then
-  gl_ADD_PROG([optional_bin_progs], [df])
-fi
+#if test $gl_cv_list_mounted_fs = yes && test $gl_cv_fs_space = yes; then
+#  gl_ADD_PROG([optional_bin_progs], [df])
+#fi
 
 # Build stdbuf only if supported
 ac_save_CFLAGS=$CFLAGS
@@ -486,9 +486,9 @@ AC_LINK_IFELSE(
   ],
   [stdbuf_supported=yes])
 AC_MSG_RESULT([$stdbuf_supported])
-if test "$stdbuf_supported" = "yes" && test -z "$EXEEXT"; then
-  gl_ADD_PROG([optional_bin_progs], [stdbuf])
-fi
+#if test "$stdbuf_supported" = "yes" && test -z "$EXEEXT"; then
+#  gl_ADD_PROG([optional_bin_progs], [stdbuf])
+#fi
 CFLAGS=$ac_save_CFLAGS
 LDFLAGS=$ac_save_LDFLAGS
 
@@ -505,10 +505,10 @@ m4_include([m4/cu-progs.m4])
 # which optional helper progs should be compiled.
 # Note it adding to pkglibexec_PROGRAMS, $(transform) in src/local.mk
 # may need to be updated accordingly.
-case " $optional_bin_progs " in
-  *' stdbuf '*) pkglibexec_PROGRAMS='src/libstdbuf.so';;
-  *) pkglibexec_PROGRAMS='';;
-esac
+#case " $optional_bin_progs " in
+#  *' stdbuf '*) pkglibexec_PROGRAMS='src/libstdbuf.so';;
+#  *) pkglibexec_PROGRAMS='';;
+#esac
 
 man1_MANS=`
   for p in $optional_bin_progs; do

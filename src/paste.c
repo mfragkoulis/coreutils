@@ -46,7 +46,7 @@
 
 /*  dgsh negotiate API (fix -I) */
 #include <assert.h>
-#include "dgsh-negotiate.h"
+#include "dgsh.h"
 
 /* The official name of this program (e.g., no 'g' prefix).  */
 #define PROGRAM_NAME "paste"

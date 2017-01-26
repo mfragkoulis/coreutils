@@ -37,7 +37,7 @@
 /*  dgsh negotiate API (fix -I) */
 #include <assert.h>
 #include <sys/stat.h>	/* struct stat */
-#include "dgsh-negotiate.h"
+#include "dgsh.h"
 
 /* The official name of this program (e.g., no 'g' prefix).  */
 #define PROGRAM_NAME "join"

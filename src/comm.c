@@ -32,7 +32,7 @@
 
 /*  dgsh negotiate API (fix -I) */
 #include <assert.h>
-#include "dgsh-negotiate.h"
+#include "dgsh.h"
 char negotiation_title[100];
 
 /* The official name of this program (e.g., no 'g' prefix).  */

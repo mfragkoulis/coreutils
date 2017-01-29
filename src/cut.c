@@ -24,6 +24,7 @@
 
 #include <config.h>
 
+#include <dgsh.h>
 #include <stdio.h>
 #include <assert.h>
 #include <getopt.h>
@@ -114,11 +115,18 @@ static char *output_delimiter_string;
 /* True if we have ever read standard input. */
 static bool have_read_stdin;
 
+/* Output file streams */
+static FILE **output_streams;
+
+/* Number of output streams */
+static int n_output_streams;
+
 /* For long options that have no equivalent short option, use a
    non-character as a pseudo short option, starting with CHAR_MAX + 1.  */
 enum
 {
   OUTPUT_DELIMITER_OPTION = CHAR_MAX + 1,
+  MULTISTREAM_OPTION,
   COMPLEMENT_OPTION
 };
 
@@ -131,6 +139,7 @@ static struct option const longopts[] =
   {"only-delimited", no_argument, NULL, 's'},
   {"output-delimiter", required_argument, NULL, OUTPUT_DELIMITER_OPTION},
   {"complement", no_argument, NULL, COMPLEMENT_OPTION},
+  {"multistream", no_argument, NULL, MULTISTREAM_OPTION},
   {"zero-terminated", no_argument, NULL, 'z'},
   {GETOPT_HELP_OPTION_DECL},
   {GETOPT_VERSION_OPTION_DECL},
@@ -169,6 +178,10 @@ Print selected parts of lines from each FILE to standard output.\n\
       fputs (_("\
       --complement        complement the set of selected bytes, characters\n\
                             or fields\n\
+"), stdout);
+      fputs (_("\
+      --multistream       output the selected field into multiple dgsh\n\
+                            streams\n\
 "), stdout);
       fputs (_("\
   -s, --only-delimited    do not print lines not containing delimiters\n\
@@ -227,6 +240,17 @@ is_range_start_index (size_t k)
   return k == current_rp->lo;
 }
 
+/* Return the file stream pointer associated with the specified item */
+
+static inline FILE *
+idx_stream (size_t n)
+{
+  n--;
+  if (n >= n_frp - 1)
+    n = n_frp - 2;
+  return output_streams[n];
+}
+
 /* Read from stream STREAM, printing to standard output any selected bytes.  */
 
 static void
@@ -236,6 +260,8 @@ cut_bytes (FILE *stream)
   /* Whether to begin printing delimiters between ranges for the current line.
      Set after we've begun printing data corresponding to the first range.  */
   bool print_delimiter;
+  size_t field_idx = 1;
+  size_t found_idx;
 
   byte_idx = 0;
   print_delimiter = false;
@@ -248,15 +274,16 @@ cut_bytes (FILE *stream)
 
       if (c == line_delim)
         {
-          putchar (c);
+          putc (c, idx_stream (field_idx));
           byte_idx = 0;
+	  field_idx = 1;
           print_delimiter = false;
           current_rp = frp;
         }
       else if (c == EOF)
         {
           if (byte_idx > 0)
-            putchar (line_delim);
+            putc (line_delim, idx_stream (field_idx));
           break;
         }
       else
@@ -264,17 +291,18 @@ cut_bytes (FILE *stream)
           next_item (&byte_idx);
           if (print_kth (byte_idx))
             {
-              if (output_delimiter_specified)
+              if (output_delimiter_specified || n_output_streams > 1)
                 {
                   if (print_delimiter && is_range_start_index (byte_idx))
                     {
                       fwrite (output_delimiter_string, sizeof (char),
-                              output_delimiter_length, stdout);
+                              output_delimiter_length, idx_stream (field_idx));
+		      field_idx++;
                     }
                   print_delimiter = true;
                 }
 
-              putchar (c);
+              putc (c, idx_stream (field_idx));
             }
         }
     }
@@ -288,6 +316,7 @@ cut_fields (FILE *stream)
   int c;
   size_t field_idx = 1;
   bool found_any_selected_field = false;
+  size_t found_idx;
   bool buffer_first_field;
 
   current_rp = frp;
@@ -341,10 +370,10 @@ cut_fields (FILE *stream)
                 }
               else
                 {
-                  fwrite (field_1_buffer, sizeof (char), n_bytes, stdout);
+                  fwrite (field_1_buffer, sizeof (char), n_bytes, idx_stream (field_idx));
                   /* Make sure the output line is newline terminated.  */
                   if (field_1_buffer[n_bytes - 1] != line_delim)
-                    putchar (line_delim);
+                    putc (line_delim, idx_stream (field_idx));
                   c = line_delim;
                 }
               continue;
@@ -352,7 +381,7 @@ cut_fields (FILE *stream)
           if (print_kth (1))
             {
               /* Print the field, but not the trailing delimiter.  */
-              fwrite (field_1_buffer, sizeof (char), n_bytes - 1, stdout);
+              fwrite (field_1_buffer, sizeof (char), n_bytes - 1, idx_stream (field_idx));
 
               /* With -d$'\n' don't treat the last '\n' as a delimiter.  */
               if (delim == line_delim)
@@ -362,10 +391,13 @@ cut_fields (FILE *stream)
                     {
                       ungetc (last_c, stream);
                       found_any_selected_field = true;
+		      found_idx = 1;
                     }
                 }
-              else
+              else {
                 found_any_selected_field = true;
+		found_idx = 1;
+	      }
             }
           next_item (&field_idx);
         }
@@ -377,13 +409,14 @@ cut_fields (FILE *stream)
           if (found_any_selected_field)
             {
               fwrite (output_delimiter_string, sizeof (char),
-                      output_delimiter_length, stdout);
+                      output_delimiter_length, idx_stream (found_idx));
             }
           found_any_selected_field = true;
+	  found_idx = field_idx;
 
           while ((c = getc (stream)) != delim && c != line_delim && c != EOF)
             {
-              putchar (c);
+              putc (c, idx_stream (field_idx));
               prev_c = c;
             }
         }
@@ -414,7 +447,7 @@ cut_fields (FILE *stream)
             {
               if (c == line_delim || prev_c != line_delim
                   || delim == line_delim)
-                putchar (line_delim);
+                putc (line_delim, idx_stream (field_idx));
             }
           if (c == EOF)
             break;
@@ -483,14 +516,17 @@ main (int argc, char **argv)
   bool ok;
   bool delim_specified = false;
   char *spec_list_string IF_LINT ( = NULL);
+  int n_input_fds;
+  int *input_fds;
+  int *output_fds;
+  int i;
+  bool multistream = false;
 
   initialize_main (&argc, &argv);
   set_program_name (argv[0]);
   setlocale (LC_ALL, "");
   bindtextdomain (PACKAGE, LOCALEDIR);
   textdomain (PACKAGE);
-
-  atexit (close_stdout);
 
   operating_mode = undefined_mode;
 
@@ -554,6 +590,10 @@ main (int argc, char **argv)
           complement = true;
           break;
 
+        case MULTISTREAM_OPTION:
+          multistream = true;
+          break;
+
         case_GETOPT_HELP_CHAR;
 
         case_GETOPT_VERSION_CHAR (PROGRAM_NAME, AUTHORS);
@@ -578,13 +618,55 @@ main (int argc, char **argv)
               ( (operating_mode == field_mode) ? 0 : SETFLD_ERRMSG_USE_POS)
               | (complement ? SETFLD_COMPLEMENT : 0) );
 
+
+  /* Determine number of input file descriptors (0 or 1) */
+  if (optind == argc)
+    n_input_fds = 1;
+  else
+    {
+      n_input_fds = 0;
+      for (ok = true; optind < argc; optind++)
+        if (STREQ (argv[optind], "-"))
+          n_input_fds = 1;
+    }
+
+  /* Negotiate (specify) number of I/O descriptors */
+  if (multistream)
+    n_output_streams = n_frp - 1;
+  else
+    n_output_streams = 1;
+  if (dgsh_negotiate(program_name,
+        &n_input_fds, &n_output_streams,
+        &input_fds, &output_fds) < 0)
+    exit (EXIT_FAILURE);
+
+  if (n_output_streams == 0)
+    {
+      static int out[] = {1};
+      output_fds = out;
+      n_output_streams = 1;
+    }
+  output_streams = xmalloc (n_output_streams * sizeof(FILE *));
+  for (i = 0; i < n_output_streams; i++) {
+    if ((output_streams[i] = fdopen (output_fds[i], "w")) == NULL)
+      {
+          error (0, errno, "fd %d", output_fds[i]);
+          exit (EXIT_FAILURE);
+      }
+  }
+
   if (!delim_specified)
     delim = '\t';
 
+  /* For more than one outputs set default output delimiter
+   * to line delimiter */
   if (output_delimiter_string == NULL)
     {
       static char dummy[2];
-      dummy[0] = delim;
+      if (n_output_streams > 1)
+        dummy[0] = line_delim;
+      else
+        dummy[0] = delim;
       dummy[1] = '\0';
       output_delimiter_string = dummy;
       output_delimiter_length = 1;
@@ -603,6 +685,14 @@ main (int argc, char **argv)
       ok = false;
     }
 
+  for (i = 0; i < n_output_streams; i++)
+    if (fclose (output_streams[i]) != 0)
+      {
+        error (0, errno, _("write error: fd %d"), output_fds[i]);
+        ok = false;
+      }
+
+  IF_LINT (free (output_streams));
   IF_LINT (reset_fields ());
 
   return ok ? EXIT_SUCCESS : EXIT_FAILURE;

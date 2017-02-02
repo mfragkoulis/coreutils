@@ -90,7 +90,7 @@ remove_ldadd =
 # replacement functions defined in libcoreutils.a.
 
 # dgsh: link against the dgsh negotiation library
-LDADD = src/libver.a lib/libcoreutils.a $(LIBINTL) lib/libcoreutils.a ../../libdgsh.a
+LDADD = src/libver.a lib/libcoreutils.a $(LIBINTL) lib/libcoreutils.a ../../core-tools/src/libdgsh.a
 
 # First, list all programs, to make listing per-program libraries easier.
 # See [ below.

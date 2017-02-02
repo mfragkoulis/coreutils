@@ -221,8 +221,8 @@ MOSTLYCLEANFILES =
 CLEANFILES =
 MOSTLYCLEANDIRS =
 
-# dgsh include path: -I../..
-AM_CPPFLAGS = -Ilib -I$(top_srcdir)/lib -Isrc -I$(top_srcdir)/src -I../..
+# dgsh include path: -I../../core-tools/src
+AM_CPPFLAGS = -Ilib -I$(top_srcdir)/lib -Isrc -I$(top_srcdir)/src -I../../core-tools/src/
 
 include $(top_srcdir)/lib/local.mk
 include $(top_srcdir)/src/local.mk

@@ -57,6 +57,8 @@
 #include <assert.h>
 #include "dgsh.h"
 char negotiation_title[100];
+int *inputfds;
+int nif = 0;
 
 #ifndef RLIMIT_DATA
 struct rlimit { size_t rlim_cur; };
@@ -951,8 +953,14 @@ stream_open (char const *file, char const *how)
     {
       if (STREQ (file, "-"))
         {
+          if (nif == 0)
+            {
+              nif++;
+	      fp = stdin;
+	    }
+          else
+            fp = fdopen(inputfds[nif++], "r");
           have_read_stdin = true;
-          fp = stdin;
         }
       else
         fp = fopen (file, how);
@@ -3768,6 +3776,38 @@ static void
 merge (struct sortfile *files, size_t ntemps, size_t nfiles,
        char const *output_file)
 {
+  /* dgsh */
+  int j = 0;
+  int ninputfds = 0;
+  int count_stdin_files = 0;
+
+  if (nfiles == 1 && STREQ(files[0].name, "-"))
+    ninputfds = -1;
+
+  if (dgsh_negotiate(negotiation_title,
+				  &ninputfds, NULL, &inputfds, NULL) != 0)
+    exit(1);
+
+  /* Count stdin input file directives */
+  for (j = 0; j < nfiles; j++)
+    {
+    const char *file = files[j].name;
+    if (STREQ(file, "-")) count_stdin_files++;
+    }
+
+  /**
+   * Realloc space in file name array to accommodate the implicit
+   * input streams coming from dgsh.
+   */
+  if (ninputfds > count_stdin_files)
+    {
+    nfiles += ninputfds - 1;
+    files = xnrealloc (files, nfiles, sizeof *files);
+    for (j = nfiles - ninputfds +1; j < nfiles; j++)
+      files[j] = files[0];
+    }
+    j = 0;
+
   while (nmerge < nfiles)
     {
       /* Number of input files processed so far.  */
@@ -3893,7 +3933,6 @@ sort (char ***files, size_t nfiles, char const *output_file,
   /* dgsh */
   int j = 0;
   int ninputfds = 0;
-  int *inputfds;
   int count_stdin_files = 0;
 
   buf.alloc = 0;

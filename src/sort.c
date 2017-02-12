@@ -57,6 +57,7 @@
 #include <assert.h>
 #include "dgsh.h"
 char negotiation_title[100];
+bool negotiation_complete = false;
 int *inputfds;
 int nif = 0;
 
@@ -2806,9 +2807,14 @@ check (char const *file_name, char checkonly)
   int ninputfds = 1;
   int noutputfds = 0;
 
-  if (dgsh_negotiate(negotiation_title,
+  if (!negotiation_complete)
+    {
+      if (dgsh_negotiate(negotiation_title,
 				  &ninputfds, &noutputfds, NULL, NULL) != 0)
-    exit(1);
+        exit(1);
+      else
+        negotiation_complete = true;
+    }
 
   initbuf (&buf, sizeof (struct line),
            MAX (merge_buffer_size, sort_size));
@@ -3788,32 +3794,38 @@ merge (struct sortfile *files, size_t ntemps, size_t nfiles,
   int noutputfds = 1;
   int count_stdin_files = 0;
 
-  if (nfiles == 1 && STREQ(files[0].name, "-"))
-    ninputfds = -1;
 
-  if (dgsh_negotiate(negotiation_title,
-				  &ninputfds, &noutputfds, &inputfds, NULL) != 0)
-    exit(1);
-
-  /* Count stdin input file directives */
-  for (j = 0; j < nfiles; j++)
+  if (!negotiation_complete)
     {
-    const char *file = files[j].name;
-    if (STREQ(file, "-")) count_stdin_files++;
-    }
+      if (nfiles == 1 && STREQ(files[0].name, "-"))
+        ninputfds = -1;
 
-  /**
-   * Realloc space in file name array to accommodate the implicit
-   * input streams coming from dgsh.
-   */
-  if (ninputfds > count_stdin_files)
-    {
-    nfiles += ninputfds - 1;
-    files = xnrealloc (files, nfiles, sizeof *files);
-    for (j = nfiles - ninputfds +1; j < nfiles; j++)
-      files[j] = files[0];
+      if (dgsh_negotiate(negotiation_title,
+			&ninputfds, &noutputfds, &inputfds, NULL) != 0)
+        exit(1);
+      else
+        negotiation_complete = true;
+
+    /* Count stdin input file directives */
+    for (j = 0; j < nfiles; j++)
+      {
+        const char *file = files[j].name;
+        if (STREQ(file, "-")) count_stdin_files++;
+      }
+
+    /**
+     * Realloc space in file name array to accommodate the implicit
+     * input streams coming from dgsh.
+     */
+    if (ninputfds > count_stdin_files)
+      {
+        nfiles += ninputfds - 1;
+        files = xnrealloc (files, nfiles, sizeof *files);
+        for (j = nfiles - ninputfds +1; j < nfiles; j++)
+          files[j] = files[0];
+      }
+      j = 0;
     }
-    j = 0;
 
   while (nmerge < nfiles)
     {
@@ -3945,32 +3957,37 @@ sort (char ***files, size_t nfiles, char const *output_file,
 
   buf.alloc = 0;
 
-  if (nfiles == 1 && STREQ((*files)[0], "-"))
-    ninputfds = -1;
-
-  if (dgsh_negotiate(negotiation_title,
-				  &ninputfds, &noutputfds, &inputfds, NULL) != 0)
-    exit(1);
-
-  /* Count stdin input file directives */
-  for (j = 0; j < nfiles; j++)
+  if (!negotiation_complete)
     {
-    const char *file = (*files)[j];
-    if (STREQ(file, "-")) count_stdin_files++;
-    }
+      if (nfiles == 1 && STREQ((*files)[0], "-"))
+        ninputfds = -1;
+
+      if (dgsh_negotiate(negotiation_title,
+			&ninputfds, &noutputfds, &inputfds, NULL) != 0)
+        exit(1);
+      else
+        negotiation_complete = true;
+
+      /* Count stdin input file directives */
+      for (j = 0; j < nfiles; j++)
+        {
+          const char *file = (*files)[j];
+          if (STREQ(file, "-")) count_stdin_files++;
+        }
   
-  /**
-   * Realloc space in file name array to accommodate the implicit
-   * input streams coming from dgsh.
-   */
-  if (ninputfds > count_stdin_files)
-    {
-    nfiles += ninputfds - 1;
-    *files = xnrealloc (*files, nfiles, sizeof **files);
-    for (j = nfiles - ninputfds +1; j < nfiles; j++)
-      (*files)[j] = (*files)[0];
+      /**
+       * Realloc space in file name array to accommodate the implicit
+       * input streams coming from dgsh.
+       */
+      if (ninputfds > count_stdin_files)
+        {
+          nfiles += ninputfds - 1;
+          *files = xnrealloc (*files, nfiles, sizeof **files);
+          for (j = nfiles - ninputfds +1; j < nfiles; j++)
+            (*files)[j] = (*files)[0];
+        }
+        j = 0;
     }
-    j = 0;
 
   while (nfiles)
     { 

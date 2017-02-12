@@ -2803,6 +2803,12 @@ check (char const *file_name, char checkonly)
   struct keyfield const *key = keylist;
   bool nonunique = ! unique;
   bool ordered = true;
+  int ninputfds = 1;
+  int noutputfds = 0;
+
+  if (dgsh_negotiate(negotiation_title,
+				  &ninputfds, &noutputfds, NULL, NULL) != 0)
+    exit(1);
 
   initbuf (&buf, sizeof (struct line),
            MAX (merge_buffer_size, sort_size));

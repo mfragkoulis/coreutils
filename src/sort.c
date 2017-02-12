@@ -3779,13 +3779,14 @@ merge (struct sortfile *files, size_t ntemps, size_t nfiles,
   /* dgsh */
   int j = 0;
   int ninputfds = 0;
+  int noutputfds = 1;
   int count_stdin_files = 0;
 
   if (nfiles == 1 && STREQ(files[0].name, "-"))
     ninputfds = -1;
 
   if (dgsh_negotiate(negotiation_title,
-				  &ninputfds, NULL, &inputfds, NULL) != 0)
+				  &ninputfds, &noutputfds, &inputfds, NULL) != 0)
     exit(1);
 
   /* Count stdin input file directives */
@@ -3933,6 +3934,7 @@ sort (char ***files, size_t nfiles, char const *output_file,
   /* dgsh */
   int j = 0;
   int ninputfds = 0;
+  int noutputfds = 1;
   int count_stdin_files = 0;
 
   buf.alloc = 0;
@@ -3941,7 +3943,7 @@ sort (char ***files, size_t nfiles, char const *output_file,
     ninputfds = -1;
 
   if (dgsh_negotiate(negotiation_title,
-				  &ninputfds, NULL, &inputfds, NULL) != 0)
+				  &ninputfds, &noutputfds, &inputfds, NULL) != 0)
     exit(1);
 
   /* Count stdin input file directives */

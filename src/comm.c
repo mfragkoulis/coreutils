@@ -291,9 +291,8 @@ compare_files (int nfiles, char **infiles)
     ninputfds++;
   */
 
-  if (dgsh_negotiate(negotiation_title, &ninputfds, &noutputfds,
-				  &inputfds, &outputfds) != 0)
-      exit(1);
+  dgsh_negotiate(DGSH_HANDLE_ERROR, negotiation_title, &ninputfds, &noutputfds,
+		  &inputfds, &outputfds);
 
   /* The first file descriptor has been set to stdin */
   if (ninputfds > 0)

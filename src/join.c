@@ -1219,9 +1219,8 @@ main (int argc, char **argv)
   else
     snprintf(negotiation_title, 100, "%s", argv[0]);
 
-  if (dgsh_negotiate(negotiation_title,
-				  &ninputfds, NULL, &inputfds, NULL) != 0)
-      exit(1);
+  dgsh_negotiate(DGSH_HANDLE_ERROR, negotiation_title, &ninputfds, NULL,
+		  &inputfds, NULL);
 
   fp1 = STREQ (g_names[0], "-") ? stdin : fopen (g_names[0], "r");
   if (!fp1)

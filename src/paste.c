@@ -386,9 +386,7 @@ paste_serial (size_t nfiles, char **fnamptr)
   int ninputfds = -1;
   int *inputfds;
 
-  if (dgsh_negotiate("paste", &ninputfds, NULL,
-				  &inputfds, NULL) != 0)
-    exit(1);
+  dgsh_negotiate(DGSH_HANDLE_ERROR, "paste", &ninputfds, NULL, &inputfds, NULL);
 
   for (; nfiles; nfiles--, fnamptr++)
     {

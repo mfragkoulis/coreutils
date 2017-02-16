@@ -2809,9 +2809,8 @@ check (char const *file_name, char checkonly)
 
   if (!negotiation_complete)
     {
-      if (dgsh_negotiate(negotiation_title,
-				  &ninputfds, &noutputfds, NULL, NULL) != 0)
-        exit(1);
+      dgsh_negotiate(DGSH_HANDLE_ERROR, negotiation_title,
+		      &ninputfds, &noutputfds, NULL, NULL);
       else
         negotiation_complete = true;
     }
@@ -3800,9 +3799,8 @@ merge (struct sortfile *files, size_t ntemps, size_t nfiles,
       if (nfiles == 1 && STREQ(files[0].name, "-"))
         ninputfds = -1;
 
-      if (dgsh_negotiate(negotiation_title,
-			&ninputfds, &noutputfds, &inputfds, NULL) != 0)
-        exit(1);
+      dgsh_negotiate(DGSH_HANDLE_ERROR, negotiation_title,
+		      &ninputfds, &noutputfds, &inputfds, NULL);
       else
         negotiation_complete = true;
 
@@ -3962,9 +3960,8 @@ sort (char ***files, size_t nfiles, char const *output_file,
       if (nfiles == 1 && STREQ((*files)[0], "-"))
         ninputfds = -1;
 
-      if (dgsh_negotiate(negotiation_title,
-			&ninputfds, &noutputfds, &inputfds, NULL) != 0)
-        exit(1);
+      dgsh_negotiate(DGSH_HANDLE_ERROR, negotiation_title, &ninputfds,
+		      &noutputfds, &inputfds, NULL);
       else
         negotiation_complete = true;
 

@@ -2811,8 +2811,7 @@ check (char const *file_name, char checkonly)
     {
       dgsh_negotiate(DGSH_HANDLE_ERROR, negotiation_title,
 		      &ninputfds, &noutputfds, NULL, NULL);
-      else
-        negotiation_complete = true;
+      negotiation_complete = true;
     }
 
   initbuf (&buf, sizeof (struct line),
@@ -3801,8 +3800,7 @@ merge (struct sortfile *files, size_t ntemps, size_t nfiles,
 
       dgsh_negotiate(DGSH_HANDLE_ERROR, negotiation_title,
 		      &ninputfds, &noutputfds, &inputfds, NULL);
-      else
-        negotiation_complete = true;
+      negotiation_complete = true;
 
     /* Count stdin input file directives */
     for (j = 0; j < nfiles; j++)
@@ -3962,8 +3960,7 @@ sort (char ***files, size_t nfiles, char const *output_file,
 
       dgsh_negotiate(DGSH_HANDLE_ERROR, negotiation_title, &ninputfds,
 		      &noutputfds, &inputfds, NULL);
-      else
-        negotiation_complete = true;
+      negotiation_complete = true;
 
       /* Count stdin input file directives */
       for (j = 0; j < nfiles; j++)

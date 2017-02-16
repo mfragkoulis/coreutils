@@ -635,7 +635,7 @@ main (int argc, char **argv)
     n_output_streams = n_frp - 1;
   else
     n_output_streams = 1;
-  dgsh_negotiate(DGSH_HANDLE_ERROR, program_name,
+  dgsh_negotiate(DGSH_HANDLE_ERROR, argv[0],
         &n_input_fds, &n_output_streams,
         &input_fds, &output_fds);
 

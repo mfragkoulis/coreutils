@@ -568,17 +568,12 @@ main (int argc, char **argv)
     }
 
   /* dgsh */
-  int status = -1;
   int j = 0;
   int ninputfds = -1;
   int *inputfds;
 
-  if ((status = dgsh_negotiate(negotiation_title, &ninputfds, NULL,
-				&inputfds, NULL)) != 0)
-  {
-    printf("dgsh negotiation failed with status code %d.\n", status);
-    exit(1);
-  }
+  dgsh_negotiate(DGSH_HANDLE_ERROR, negotiation_title, &ninputfds, NULL,
+	&inputfds, NULL);
 
 /*
   for (j = 0; j < ninputfds; j++)

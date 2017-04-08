@@ -245,6 +245,10 @@ is_range_start_index (size_t k)
 static inline FILE *
 idx_stream (size_t n)
 {
+  /* Single output */
+  if (n_output_streams == 1)
+    return output_streams[0];
+  /* Potentially multiple output */
   n--;
   if (n >= n_frp - 1)
     n = n_frp - 2;
